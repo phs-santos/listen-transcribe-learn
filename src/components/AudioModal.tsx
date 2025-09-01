@@ -21,6 +21,8 @@ export const AudioModal = ({ isOpen, onClose, audioTitle, audioSrc }: AudioModal
   const [userTranscription, setUserTranscription] = useState("");
   const [llmTranscription, setLlmTranscription] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isTranscriptionSaved, setIsTranscriptionSaved] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   const { toast } = useToast();
 
@@ -77,6 +79,9 @@ export const AudioModal = ({ isOpen, onClose, audioTitle, audioSrc }: AudioModal
       return;
     }
 
+    setIsTranscriptionSaved(true);
+    setIsEditing(false);
+    
     toast({
       title: "Sucesso",
       description: "Transcrição salva com sucesso!",
@@ -84,6 +89,10 @@ export const AudioModal = ({ isOpen, onClose, audioTitle, audioSrc }: AudioModal
     
     // Here you would typically save to a backend
     console.log("Saving transcription:", userTranscription);
+  };
+
+  const handleEditTranscription = () => {
+    setIsEditing(true);
   };
 
   const generateLLMTranscription = async () => {
@@ -190,7 +199,10 @@ export const AudioModal = ({ isOpen, onClose, audioTitle, audioSrc }: AudioModal
                       placeholder="Digite aqui a transcrição do áudio...&#10;&#10;Formatação disponível:&#10;• **texto em negrito**&#10;• *texto em itálico*&#10;• __texto sublinhado__&#10;• [link](url)&#10;&#10;Organização:&#10;• Use quebras de linha para separar ideias&#10;• Para tags: categoria/subcategoria&#10;• Exemplo: entrega/mercado livre"
                       value={userTranscription}
                       onChange={(e) => setUserTranscription(e.target.value)}
-                      className="mt-2 min-h-[180px] bg-background/50 border-border/50 focus:border-primary/50 font-mono text-sm leading-relaxed"
+                      readOnly={isTranscriptionSaved && !isEditing}
+                      className={`mt-2 min-h-[180px] bg-background/50 border-border/50 focus:border-primary/50 font-mono text-sm leading-relaxed ${
+                        isTranscriptionSaved && !isEditing ? 'cursor-default opacity-75' : ''
+                      }`}
                     />
                     <div className="mt-2 p-3 bg-secondary/30 rounded-md border border-border/30">
                       <p className="text-xs text-muted-foreground mb-2 font-medium">Preview da formatação:</p>
@@ -210,47 +222,59 @@ export const AudioModal = ({ isOpen, onClose, audioTitle, audioSrc }: AudioModal
                     </div>
                   </div>
                   
-                  <Button 
-                    onClick={handleSaveTranscription}
-                    className="bg-gradient-primary hover:shadow-glow transition-all duration-200"
-                  >
-                    <Save className="w-4 h-4 mr-2" />
-                    Salvar Transcrição
-                  </Button>
+                  {!isTranscriptionSaved || isEditing ? (
+                    <Button 
+                      onClick={handleSaveTranscription}
+                      className="bg-gradient-primary hover:shadow-glow transition-all duration-200"
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      Salvar Transcrição
+                    </Button>
+                  ) : (
+                    <Button 
+                      onClick={handleEditTranscription}
+                      variant="outline"
+                      className="border-border/50 hover:border-primary/50"
+                    >
+                      Editar Transcrição
+                    </Button>
+                  )}
                   
-                  {/* LLM Transcription */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <Label className="text-foreground">Transcrição da IA</Label>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={generateLLMTranscription}
-                        disabled={isGenerating}
-                        className="border-border/50 hover:border-primary/50"
-                      >
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        {isGenerating ? "Gerando..." : "Gerar IA"}
-                      </Button>
+                  {/* LLM Transcription - Only show when user transcription is saved and not editing */}
+                  {isTranscriptionSaved && !isEditing && (
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="text-foreground">Transcrição da IA</Label>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={generateLLMTranscription}
+                          disabled={isGenerating}
+                          className="border-border/50 hover:border-primary/50"
+                        >
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          {isGenerating ? "Gerando..." : "Gerar IA"}
+                        </Button>
+                      </div>
+                      
+                      <div className="p-4 bg-background/50 rounded-lg border border-border/50 min-h-[120px]">
+                        {isGenerating ? (
+                          <div className="flex items-center justify-center h-24">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                            <span className="ml-2 text-muted-foreground">Processando áudio...</span>
+                          </div>
+                        ) : llmTranscription ? (
+                          <p className="text-foreground text-sm leading-relaxed">
+                            {llmTranscription}
+                          </p>
+                        ) : (
+                          <p className="text-muted-foreground text-sm italic">
+                            Clique em "Gerar IA" para obter uma transcrição automática
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    
-                    <div className="p-4 bg-background/50 rounded-lg border border-border/50 min-h-[120px]">
-                      {isGenerating ? (
-                        <div className="flex items-center justify-center h-24">
-                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                          <span className="ml-2 text-muted-foreground">Processando áudio...</span>
-                        </div>
-                      ) : llmTranscription ? (
-                        <p className="text-foreground text-sm leading-relaxed">
-                          {llmTranscription}
-                        </p>
-                      ) : (
-                        <p className="text-muted-foreground text-sm italic">
-                          Clique em "Gerar IA" para obter uma transcrição automática
-                        </p>
-                      )}
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </Card>
