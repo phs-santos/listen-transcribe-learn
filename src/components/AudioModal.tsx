@@ -182,10 +182,10 @@ export const AudioModal = ({ isOpen, onClose, audioTitle, audioSrc }: AudioModal
                     </Label>
                     <Textarea
                       id="userTranscription"
-                      placeholder="Digite aqui a transcrição do áudio que você acabou de escutar..."
+                      placeholder="Digite aqui a transcrição do áudio...&#10;&#10;Dicas:&#10;• Use quebras de linha para separar ideias&#10;• Para tags, use formato: categoria/subcategoria&#10;• Exemplo: entrega/mercado livre ou entrega/ifood"
                       value={userTranscription}
                       onChange={(e) => setUserTranscription(e.target.value)}
-                      className="mt-2 min-h-[120px] bg-background/50 border-border/50 focus:border-primary/50"
+                      className="mt-2 min-h-[180px] bg-background/50 border-border/50 focus:border-primary/50 font-mono text-sm leading-relaxed"
                     />
                   </div>
                   
