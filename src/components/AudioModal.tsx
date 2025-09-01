@@ -177,16 +177,37 @@ export const AudioModal = ({ isOpen, onClose, audioTitle, audioSrc }: AudioModal
                 {/* User Transcription */}
                 <div className="flex-1 space-y-4">
                   <div>
-                    <Label htmlFor="userTranscription" className="text-foreground">
-                      Sua Transcrição
-                    </Label>
+                    <div className="flex items-center justify-between mb-2">
+                      <Label htmlFor="userTranscription" className="text-foreground">
+                        Sua Transcrição
+                      </Label>
+                      <div className="text-xs text-muted-foreground">
+                        Formatação: **negrito** *itálico* __sublinhado__
+                      </div>
+                    </div>
                     <Textarea
                       id="userTranscription"
-                      placeholder="Digite aqui a transcrição do áudio...&#10;&#10;Dicas:&#10;• Use quebras de linha para separar ideias&#10;• Para tags, use formato: categoria/subcategoria&#10;• Exemplo: entrega/mercado livre ou entrega/ifood"
+                      placeholder="Digite aqui a transcrição do áudio...&#10;&#10;Formatação disponível:&#10;• **texto em negrito**&#10;• *texto em itálico*&#10;• __texto sublinhado__&#10;• [link](url)&#10;&#10;Organização:&#10;• Use quebras de linha para separar ideias&#10;• Para tags: categoria/subcategoria&#10;• Exemplo: entrega/mercado livre"
                       value={userTranscription}
                       onChange={(e) => setUserTranscription(e.target.value)}
                       className="mt-2 min-h-[180px] bg-background/50 border-border/50 focus:border-primary/50 font-mono text-sm leading-relaxed"
                     />
+                    <div className="mt-2 p-3 bg-secondary/30 rounded-md border border-border/30">
+                      <p className="text-xs text-muted-foreground mb-2 font-medium">Preview da formatação:</p>
+                      <div className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+                        {userTranscription ? (
+                          <div dangerouslySetInnerHTML={{
+                            __html: userTranscription
+                              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                              .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                              .replace(/__(.*?)__/g, '<u>$1</u>')
+                              .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-primary underline">$1</a>')
+                          }} />
+                        ) : (
+                          <span className="text-muted-foreground italic">Digite no campo acima para ver o preview...</span>
+                        )} 
+                      </div>
+                    </div>
                   </div>
                   
                   <Button 
