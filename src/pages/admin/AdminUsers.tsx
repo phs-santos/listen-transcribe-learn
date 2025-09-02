@@ -55,21 +55,6 @@ export const AdminUsers = () => {
             ? "bg-primary text-primary-foreground"
             : "bg-secondary";
 
-    const getStatusColor = (status: string) =>
-        status === "active"
-            ? "bg-green-500/10 text-green-500"
-            : "bg-red-500/10 text-red-500";
-
-    const handleCreate = async () => {
-        await createUser({
-            name: "Novo Usuário",
-            email: "novo@exemplo.com",
-            password: "123456",
-            role: "user",
-        });
-        await refresh();
-    };
-
     const handleEdit = async (id: number) => {
         // Evita trocar o próprio role (opcional)
         if (actualUser?.id === id) return;

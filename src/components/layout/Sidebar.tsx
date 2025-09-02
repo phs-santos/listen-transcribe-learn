@@ -193,11 +193,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
                 <div className="px-6 py-5 border-b border-border">
                     <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-2xl bg-primary text-primary-foreground grid place-items-center font-bold">
-                            AD
+                            Px
                         </div>
                         <div className="min-w-0">
                             <h2 className="text-base font-semibold leading-tight">
-                                PxTalk Manual
+                                Pxtalk Manual
                             </h2>
                             <p className="text-xs text-muted-foreground leading-tight truncate">
                                 {user?.email}
@@ -218,17 +218,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
                 {/* navegação */}
                 <nav className="flex-1 p-4 space-y-2">
                     {navItems.map((item, i) => (
-                        <>
+                        <div key={`navitem-wrapper-${i}`}>
                             {!(item.adminOnly && user?.role !== "admin") && (
                                 <NavItem
-                                    key={item.to}
                                     {...item}
                                     innerRef={
                                         i === 0 ? firstItemRef : undefined
                                     }
                                 />
                             )}
-                        </>
+                        </div>
                     ))}
                 </nav>
 
