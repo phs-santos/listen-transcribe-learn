@@ -5,41 +5,58 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Headphones, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 interface LoginFormProps {
-  onLogin: (email: string) => void;
+  onLogin?: (email: string) => void;
 }
 
 export const LoginForm = ({ onLogin }: LoginFormProps) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const { login, isLoading } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email || !password) {
       toast({
-        title: "Erro",
+        title: "Campos obrigatórios",
         description: "Por favor, preencha todos os campos.",
         variant: "destructive",
       });
       return;
     }
 
-    setIsLoading(true);
+    const success = await login(email, password);
     
-    // Simulate login delay
-    setTimeout(() => {
+    if (success) {
       toast({
-        title: "Sucesso",
-        description: "Login realizado com sucesso!",
+        title: "Login realizado com sucesso!",
+        description: `Bem-vindo, ${email}!`,
       });
-      onLogin(email);
-      setIsLoading(false);
-    }, 1000);
+      
+      // Navigate based on user role
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      if (storedUser.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/dashboard');
+      }
+      
+      // Legacy callback support
+      onLogin?.(email);
+    } else {
+      toast({
+        title: "Erro no login",
+        description: "Email ou senha inválidos.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -123,9 +140,13 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
 
           {/* Footer */}
           <div className="mt-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              Primeira vez aqui? Use qualquer email e senha para entrar.
+            <p className="text-sm text-muted-foreground mb-2">
+              Credenciais de teste:
             </p>
+            <div className="text-xs text-muted-foreground space-y-1">
+              <p><strong>Admin:</strong> admin@test.com / admin123</p>
+              <p><strong>Usuário:</strong> user@test.com / user123</p>
+            </div>
           </div>
         </Card>
       </div>

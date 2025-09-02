@@ -1,8 +1,12 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { LoginForm } from "@/components/LoginForm";
 import { Navigate } from "react-router-dom";
 
-const Index = () => {
+interface RouteGuardProps {
+  children: React.ReactNode;
+  requireAdmin?: boolean;
+}
+
+export const RouteGuard = ({ children, requireAdmin = false }: RouteGuardProps) => {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
@@ -13,11 +17,13 @@ const Index = () => {
     );
   }
 
-  if (user) {
-    return user.role === 'admin' ? <Navigate to="/admin" replace /> : <Navigate to="/dashboard" replace />;
+  if (!user) {
+    return <Navigate to="/" replace />;
   }
 
-  return <LoginForm />;
-};
+  if (requireAdmin && user.role !== 'admin') {
+    return <Navigate to="/dashboard" replace />;
+  }
 
-export default Index;
+  return <>{children}</>;
+};
