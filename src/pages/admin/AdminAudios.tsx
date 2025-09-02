@@ -1,4 +1,3 @@
-// src/pages/admin/AdminAudios.tsx
 import { useEffect, useMemo, useState } from "react";
 import {
     Card,
@@ -16,6 +15,13 @@ import { useAudiosInList } from "@/hooks/use-audios-in-list";
 import { CreateAudioListModal } from "@/components/admin/CreateAudioListModal";
 import { GenerateAudiosModal } from "@/components/admin/GenerateAudiosModal";
 
+function formatDatetime(str?: string) {
+    if (!str) return "—";
+    const d = new Date(str);
+    if (isNaN(d.getTime())) return "—";
+    return `${d.toLocaleDateString("pt-BR")} ${d.toTimeString().slice(0, 5)}`; // "dd/mm/aaaa hh:mm"
+}
+
 export const AdminAudios = () => {
     const { lists, loading, error, listAll, deleteList, getById } =
         useAudioLists();
@@ -24,7 +30,6 @@ export const AdminAudios = () => {
     const [genOpen, setGenOpen] = useState(false);
     const [selectedList, setSelectedList] = useState<AudioList | null>(null);
 
-    // audios hook amarrado à lista selecionada
     const { audios, load, deleteAudio } = useAudiosInList(
         selectedList?.id ?? null
     );
@@ -42,7 +47,8 @@ export const AdminAudios = () => {
             (l) =>
                 l.accountcode.toLowerCase().includes(q) ||
                 (l.notes || "").toLowerCase().includes(q) ||
-                (l.date || "").toLowerCase().includes(q)
+                formatDatetime(l.start_date).toLowerCase().includes(q) ||
+                formatDatetime(l.end_date).toLowerCase().includes(q)
         );
     }, [lists, searchTerm]);
 
@@ -67,7 +73,7 @@ export const AdminAudios = () => {
                 <div className="relative flex-1 max-w-sm">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Buscar por accountcode, data, notas…"
+                        placeholder="Buscar por empresa, data, notas…"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10"
@@ -85,11 +91,11 @@ export const AdminAudios = () => {
                             </div>
                             <div className="min-w-0">
                                 <CardTitle className="text-base truncate">
-                                    {l.accountcode} — {l.date}
+                                    {l.accountcode}
                                 </CardTitle>
                                 <CardDescription className="truncate">
-                                    {l.start_time ? `${l.start_time}` : "00:00"}{" "}
-                                    → {l.end_time ? l.end_time : "23:59"}
+                                    {formatDatetime(l.start_date)} →{" "}
+                                    {formatDatetime(l.end_date)}
                                 </CardDescription>
                             </div>
                         </CardHeader>
@@ -144,12 +150,11 @@ export const AdminAudios = () => {
                     <CardHeader className="flex flex-row items-center justify-between">
                         <div>
                             <CardTitle>
-                                Lista: {selectedList.accountcode} —{" "}
-                                {selectedList.date}
+                                Lista: {selectedList.accountcode}
                             </CardTitle>
                             <CardDescription>
-                                {selectedList.start_time || "00:00"} →{" "}
-                                {selectedList.end_time || "23:59"}
+                                {formatDatetime(selectedList.start_date)} →{" "}
+                                {formatDatetime(selectedList.end_date)}
                             </CardDescription>
                         </div>
                         <div className="flex gap-2">
@@ -222,7 +227,6 @@ export const AdminAudios = () => {
                 open={createOpen}
                 onClose={() => setCreateOpen(false)}
                 onCreated={(id) => {
-                    // carrega a lista recém criada e abre detalhe
                     getById(id).then((fresh) => setSelectedList(fresh));
                 }}
             />
@@ -231,9 +235,8 @@ export const AdminAudios = () => {
                 <GenerateAudiosModal
                     open={genOpen}
                     onClose={() => setGenOpen(false)}
-                    listId={selectedList.id}
+                    list={selectedList}
                     onSaved={() => {
-                        // reload lista/áudios
                         getById(selectedList.id).then(setSelectedList);
                     }}
                 />

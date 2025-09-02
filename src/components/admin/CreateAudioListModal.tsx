@@ -1,4 +1,3 @@
-// src/components/admin/CreateAudioListModal.tsx
 import * as React from "react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,85 +17,23 @@ import { Loader2 } from "lucide-react";
 import { useAudioLists } from "@/hooks/use-audio-lists";
 import { useAuthStore } from "@/store/auth-store";
 
-type PeriodType = "day" | "custom" | "week" | "month";
-
 const schema = z
     .object({
         accountcode: z.string().min(2, "Informe o accountcode"),
-        periodType: z.enum(["day", "custom", "week", "month"]),
-        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD"),
-        start_time: z.string().optional(), // HH:mm
-        end_time: z.string().optional(), // HH:mm
+        start_date: z
+            .string()
+            .refine((val) => !isNaN(Date.parse(val)), "Data inválida"),
+        end_date: z
+            .string()
+            .refine((val) => !isNaN(Date.parse(val)), "Data inválida"),
         notes: z.string().optional(),
     })
-    .refine(
-        (v) => {
-            if (v.periodType === "custom") {
-                // para custom, horários são obrigatórios e no formato HH:mm
-                if (!v.start_time || !/^\d{2}:\d{2}$/.test(v.start_time))
-                    return false;
-                if (!v.end_time || !/^\d{2}:\d{2}$/.test(v.end_time))
-                    return false;
-            }
-            return true;
-        },
-        {
-            message: "Horários inválidos para período custom (use HH:mm).",
-            path: ["start_time"],
-        }
-    );
+    .refine((data) => new Date(data.start_date) < new Date(data.end_date), {
+        message: "A data de início deve ser anterior à data de fim",
+        path: ["end_date"],
+    });
 
 type FormValues = z.infer<typeof schema>;
-
-function toHms(t?: string) {
-    if (!t) return undefined;
-    // "HH:mm" -> "HH:mm:00"
-    if (/^\d{2}:\d{2}$/.test(t)) return `${t}:00`;
-    // já em "HH:mm:ss"
-    if (/^\d{2}:\d{2}:\d{2}$/.test(t)) return t;
-    return undefined;
-}
-
-function isoToDateParts(iso: string) {
-    const [y, m, d] = iso.split("-").map(Number);
-    return { y, m, d };
-}
-
-function formatDate(y: number, m: number, d: number) {
-    const mm = String(m).padStart(2, "0");
-    const dd = String(d).padStart(2, "0");
-    return `${y}-${mm}-${dd}`;
-}
-
-function getMonthDays(iso: string) {
-    const { y, m } = isoToDateParts(iso);
-    const last = new Date(y, m, 0).getDate(); // m já é 1-12 aqui
-    const days: string[] = [];
-    for (let d = 1; d <= last; d++) {
-        days.push(formatDate(y, m, d));
-    }
-    return days;
-}
-
-function getWeekRange(iso: string) {
-    // semana: segunda a domingo contendo a "date"
-    const base = new Date(`${iso}T00:00:00`);
-    const day = base.getDay(); // 0=domingo, 1=segunda...
-    const diffToMonday = (day + 6) % 7; // transforma: seg=0, dom=6
-    const monday = new Date(base);
-    monday.setDate(base.getDate() - diffToMonday);
-
-    const days: string[] = [];
-    for (let i = 0; i < 7; i++) {
-        const d = new Date(monday);
-        d.setDate(monday.getDate() + i);
-        const y = d.getFullYear();
-        const m = d.getMonth() + 1;
-        const dd = d.getDate();
-        days.push(formatDate(y, m, dd));
-    }
-    return days;
-}
 
 export function CreateAudioListModal({
     open,
@@ -105,7 +42,7 @@ export function CreateAudioListModal({
 }: {
     open: boolean;
     onClose: () => void;
-    onCreated?: (id: string | string[]) => void;
+    onCreated?: (id: string) => void;
 }) {
     const { createList } = useAudioLists();
     const [loading, setLoading] = React.useState(false);
@@ -115,10 +52,10 @@ export function CreateAudioListModal({
     const form = useForm<FormValues>({
         resolver: zodResolver(schema),
         defaultValues: {
-            periodType: "day",
-            date: new Date().toISOString().slice(0, 10),
-            start_time: "00:00",
-            end_time: "23:59",
+            accountcode: "",
+            start_date: "",
+            end_date: "",
+            notes: "",
         },
     });
 
@@ -127,99 +64,44 @@ export function CreateAudioListModal({
             setLoading(false);
             setError(null);
             form.reset({
-                periodType: "day",
-                date: new Date().toISOString().slice(0, 10),
-                start_time: "00:00",
-                end_time: "23:59",
+                accountcode: "",
+                start_date: "",
+                end_date: "",
+                notes: "",
             });
         }
     }, [open, form]);
-
-    // gera a “prévia” de quantas listas serão criadas
-    const previewCount = React.useMemo(() => {
-        const v = form.getValues();
-        if (v.periodType === "week") return getWeekRange(v.date).length;
-        if (v.periodType === "month") return getMonthDays(v.date).length;
-        return 1;
-    }, [form]);
 
     async function onSubmit(values: FormValues) {
         setLoading(true);
         setError(null);
         try {
-            const base = {
+            const res = await createList({
                 accountcode: values.accountcode,
+                start_date: values.start_date,
+                end_date: values.end_date,
                 notes: values.notes || undefined,
                 created_by: user?.id,
-            };
+            });
 
-            let ids: string[] = [];
-
-            if (values.periodType === "day") {
-                const res = await createList({
-                    ...base,
-                    date: values.date,
-                    start_time: "00:00:00",
-                    end_time: "23:59:59",
-                });
-                ids.push(res.id);
-            } else if (values.periodType === "custom") {
-                const startHms = toHms(values.start_time);
-                const endHms = toHms(values.end_time);
-                const res = await createList({
-                    ...base,
-                    date: values.date,
-                    start_time: startHms,
-                    end_time: endHms,
-                });
-                ids.push(res.id);
-            } else if (values.periodType === "week") {
-                const days = getWeekRange(values.date);
-                for (const d of days) {
-                    const res = await createList({
-                        ...base,
-                        date: d,
-                        start_time: "00:00:00",
-                        end_time: "23:59:59",
-                    });
-                    ids.push(res.id);
-                }
-            } else if (values.periodType === "month") {
-                const days = getMonthDays(values.date);
-                for (const d of days) {
-                    const res = await createList({
-                        ...base,
-                        date: d,
-                        start_time: "00:00:00",
-                        end_time: "23:59:59",
-                    });
-                    ids.push(res.id);
-                }
-            }
-
-            onCreated?.(ids.length === 1 ? ids[0] : ids);
+            onCreated?.(res.id);
             onClose();
         } catch (e: any) {
             setError(
-                e?.response?.data?.error ||
-                    e?.message ||
-                    "Falha ao criar lista(s)"
+                e?.response?.data?.error || e?.message || "Falha ao criar lista"
             );
         } finally {
             setLoading(false);
         }
     }
 
-    const periodType = form.watch("periodType");
-
     return (
         <Dialog open={open} onOpenChange={(o) => (!o ? onClose() : null)}>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-xl">
                 <DialogHeader>
                     <DialogTitle>Criar lista de áudios</DialogTitle>
                     <DialogDescription>
-                        Defina empresa e período (dia, intervalo, semana ou
-                        mês).
+                        Informe os dados e o período completo da lista.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -242,64 +124,37 @@ export function CreateAudioListModal({
 
                     <div className="grid sm:grid-cols-2 gap-3">
                         <div className="grid gap-2">
-                            <Label htmlFor="periodType">Período</Label>
-                            <select
-                                id="periodType"
-                                className="h-9 rounded-md border bg-background px-3"
-                                {...form.register("periodType")}
-                            >
-                                <option value="day">Dia inteiro</option>
-                                <option value="custom">
-                                    Intervalo (um dia)
-                                </option>
-                                <option value="week">Semana cheia</option>
-                                <option value="month">Mês cheio</option>
-                            </select>
+                            <Label htmlFor="start_date">Início</Label>
+                            <Input
+                                id="start_date"
+                                type="datetime-local"
+                                step={1}
+                                {...form.register("start_date")}
+                                placeholder="dd/mm/aaaa hh:mm:ss"
+                            />
+                            {form.formState.errors.start_date && (
+                                <p className="text-sm text-destructive">
+                                    {form.formState.errors.start_date.message}
+                                </p>
+                            )}
                         </div>
 
                         <div className="grid gap-2">
-                            <Label htmlFor="date">
-                                {periodType === "week"
-                                    ? "Qualquer dia da semana"
-                                    : periodType === "month"
-                                    ? "Qualquer dia do mês"
-                                    : "Data"}
-                            </Label>
+                            <Label htmlFor="end_date">Fim</Label>
                             <Input
-                                id="date"
-                                {...form.register("date")}
-                                placeholder="YYYY-MM-DD"
+                                id="end_date"
+                                type="datetime-local"
+                                step={1}
+                                {...form.register("end_date")}
+                                placeholder="dd/mm/aaaa hh:mm:ss"
                             />
-                            {form.formState.errors.date && (
+                            {form.formState.errors.end_date && (
                                 <p className="text-sm text-destructive">
-                                    {form.formState.errors.date.message}
+                                    {form.formState.errors.end_date.message}
                                 </p>
                             )}
                         </div>
                     </div>
-
-                    {periodType === "custom" && (
-                        <div className="grid sm:grid-cols-2 gap-3">
-                            <div className="grid gap-2">
-                                <Label htmlFor="start_time">
-                                    Início (HH:mm)
-                                </Label>
-                                <Input
-                                    id="start_time"
-                                    {...form.register("start_time")}
-                                    placeholder="HH:mm"
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="end_time">Fim (HH:mm)</Label>
-                                <Input
-                                    id="end_time"
-                                    {...form.register("end_time")}
-                                    placeholder="HH:mm"
-                                />
-                            </div>
-                        </div>
-                    )}
 
                     <div className="grid gap-2">
                         <Label htmlFor="notes">Notas</Label>
@@ -308,17 +163,6 @@ export function CreateAudioListModal({
                             {...form.register("notes")}
                             placeholder="Opcional"
                         />
-                    </div>
-
-                    <div className="text-xs text-muted-foreground">
-                        {periodType === "day" &&
-                            "Será criada 1 lista (00:00–23:59)."}
-                        {periodType === "custom" &&
-                            "Será criada 1 lista no dia informado com o intervalo definido."}
-                        {periodType === "week" &&
-                            `Serão criadas ${previewCount} listas (seg–dom).`}
-                        {periodType === "month" &&
-                            `Serão criadas ${previewCount} listas (1º ao último dia).`}
                     </div>
 
                     {error && (
@@ -339,7 +183,7 @@ export function CreateAudioListModal({
                         <Button type="submit" disabled={loading}>
                             {loading ? (
                                 <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />{" "}
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                                     Criando…
                                 </>
                             ) : (

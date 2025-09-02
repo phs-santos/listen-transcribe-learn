@@ -4,15 +4,13 @@ import { getApiService } from "@/lib/api/services";
 export type AudioList = {
     id: string; // UUID
     accountcode: string;
-    date: string; // YYYY-MM-DD
-    start_time?: string | null; // HH:mm:ss
-    end_time?: string | null;
+    start_date: string; // ISO datetime: "2025-09-02T08:00:00"
+    end_date: string; // ISO datetime: "2025-09-02T18:00:00"
     status: "draft" | "generated" | "saved" | "published";
     notes?: string | null;
     created_by?: number | null;
     created_at?: string;
     updated_at?: string;
-    // opcional vindo do service: totalAudios
     totalAudios?: number;
     audios?: any[]; // quando GET /audio-lists/:id
 };
@@ -22,6 +20,7 @@ export function useAudioLists() {
         () => getApiService("backend_local", "private_token"),
         []
     );
+
     const [lists, setLists] = useState<AudioList[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -55,14 +54,12 @@ export function useAudioLists() {
     const createList = useCallback(
         async (payload: {
             accountcode: string;
-            date: string;
-            start_time?: string;
-            end_time?: string;
+            start_date: string; // ISO format
+            end_date: string;
             notes?: string;
             created_by?: number;
         }) => {
             const { data } = await api.post<AudioList>("/audio-lists", payload);
-            // append otimista
             setLists((prev) => [data, ...prev]);
             return data;
         },
@@ -72,7 +69,6 @@ export function useAudioLists() {
     const getById = useCallback(
         async (id: string) => {
             const { data } = await api.get<AudioList>(`/audio-lists/${id}`);
-            // atualiza no cache local se existir
             setLists((prev) => {
                 const i = prev.findIndex((x) => x.id === id);
                 if (i === -1) return prev;
@@ -106,7 +102,6 @@ export function useAudioLists() {
             try {
                 await api.delete(`/audio-lists/${id}`);
             } catch (err) {
-                // rollback
                 setLists(prev);
                 throw err;
             }

@@ -21,6 +21,7 @@ import {
     AudioItem,
     GeneratePayload,
 } from "@/hooks/use-audios-in-list";
+import { AudioList } from "@/hooks/use-audio-lists";
 
 const schema = z.object({
     accountcode: z.string().min(2),
@@ -33,15 +34,15 @@ type FormValues = z.infer<typeof schema>;
 export function GenerateAudiosModal({
     open,
     onClose,
-    listId,
+    list,
     onSaved,
 }: {
     open: boolean;
     onClose: () => void;
-    listId: string; // <- obrigatório
+    list: AudioList; // <- obrigatório
     onSaved?: () => void;
 }) {
-    const { generatePreview, saveBulk } = useAudiosInList(listId);
+    const { generatePreview, saveBulk } = useAudiosInList(list.id);
     const [step, setStep] = React.useState<"form" | "preview">("form");
     const [loading, setLoading] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
