@@ -56,7 +56,7 @@ export const AdminLayout = () => {
                     id="main"
                     className={cx(
                         "flex-1",
-                        "lg:ml-72", // reserva espaço da sidebar no desktop
+                        // "lg:ml-72", // reserva espaço da sidebar no desktop
                         sidebarOpen &&
                             "pointer-events-none lg:pointer-events-auto" // bloqueia interação no mobile
                     )}

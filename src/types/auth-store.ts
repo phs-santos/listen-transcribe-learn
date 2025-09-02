@@ -1,7 +1,8 @@
 export type User = {
-    id: string;
-    email: string;
+    id: number;
     name: string;
-    role: string;
-    token: string;
+    email: string;
+    role?: "admin" | "user";
+    created_at?: string;
+    updated_at?: string;
 };
