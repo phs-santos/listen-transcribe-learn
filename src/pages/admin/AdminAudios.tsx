@@ -1,4 +1,5 @@
-import { useState } from "react";
+// src/pages/admin/AdminAudios.tsx
+import { useEffect, useMemo, useState } from "react";
 import {
     Card,
     CardContent,
@@ -9,172 +10,64 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
-import {
-    Search,
-    Upload,
-    Edit,
-    Trash2,
-    MoreHorizontal,
-    Play,
-} from "lucide-react";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-
-const mockAudios = [
-    {
-        id: "1",
-        title: "Meditação Matinal",
-        description: "Uma sessão relaxante para começar o dia",
-        duration: "15:32",
-        category: "Meditação",
-        status: "published",
-        plays: 245,
-        likes: 32,
-        uploadedBy: "admin@test.com",
-        uploadedAt: "2024-01-10",
-        fileSize: "12.5 MB",
-    },
-    {
-        id: "2",
-        title: "Foco e Concentração",
-        description: "Técnicas para melhorar o foco no trabalho",
-        duration: "22:15",
-        category: "Produtividade",
-        status: "published",
-        plays: 189,
-        likes: 28,
-        uploadedBy: "admin@test.com",
-        uploadedAt: "2024-01-08",
-        fileSize: "18.2 MB",
-    },
-    {
-        id: "3",
-        title: "Relaxamento Noturno",
-        description: "Sons para uma noite tranquila de sono",
-        duration: "45:00",
-        category: "Sono",
-        status: "draft",
-        plays: 0,
-        likes: 0,
-        uploadedBy: "admin@test.com",
-        uploadedAt: "2024-01-15",
-        fileSize: "35.8 MB",
-    },
-];
+import { Search, Plus, ListMusic, Trash2, Music } from "lucide-react";
+import { useAudioLists, type AudioList } from "@/hooks/use-audio-lists";
+import { useAudiosInList } from "@/hooks/use-audios-in-list";
+import { CreateAudioListModal } from "@/components/admin/CreateAudioListModal";
+import { GenerateAudiosModal } from "@/components/admin/GenerateAudiosModal";
 
 export const AdminAudios = () => {
+    const { lists, loading, error, listAll, deleteList, getById } =
+        useAudioLists();
     const [searchTerm, setSearchTerm] = useState("");
-    const [audios] = useState(mockAudios);
+    const [createOpen, setCreateOpen] = useState(false);
+    const [genOpen, setGenOpen] = useState(false);
+    const [selectedList, setSelectedList] = useState<AudioList | null>(null);
 
-    const filteredAudios = audios.filter(
-        (audio) =>
-            audio.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            audio.description
-                .toLowerCase()
-                .includes(searchTerm.toLowerCase()) ||
-            audio.category.toLowerCase().includes(searchTerm.toLowerCase())
+    // audios hook amarrado à lista selecionada
+    const { audios, load, deleteAudio } = useAudiosInList(
+        selectedList?.id ?? null
     );
 
-    const getCategoryColor = (category: string) => {
-        switch (category.toLowerCase()) {
-            case "meditação":
-                return "bg-purple-500/10 text-purple-500";
-            case "produtividade":
-                return "bg-blue-500/10 text-blue-500";
-            case "sono":
-                return "bg-indigo-500/10 text-indigo-500";
-            default:
-                return "bg-secondary";
-        }
-    };
+    useEffect(() => {
+        listAll();
+    }, [listAll]);
+    useEffect(() => {
+        if (selectedList?.id) load();
+    }, [selectedList?.id, load]);
 
-    const getStatusColor = (status: string) => {
-        return status === "published"
-            ? "bg-green-500/10 text-green-500"
-            : "bg-yellow-500/10 text-yellow-500";
-    };
+    const filteredLists = useMemo(() => {
+        const q = searchTerm.toLowerCase();
+        return lists.filter(
+            (l) =>
+                l.accountcode.toLowerCase().includes(q) ||
+                (l.notes || "").toLowerCase().includes(q) ||
+                (l.date || "").toLowerCase().includes(q)
+        );
+    }, [lists, searchTerm]);
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            {/* Header */}
+            <div className="flex items-center justify-between gap-3">
                 <div>
-                    <h1 className="text-3xl font-bold text-foreground">
-                        Gerenciar Áudios
-                    </h1>
+                    <h1 className="text-3xl font-bold">Listas de Áudios</h1>
                     <p className="text-muted-foreground mt-2">
-                        Adicione, edite e gerencie todos os áudios da plataforma
+                        Crie listas por período/empresa e adicione os áudios.
                     </p>
                 </div>
-
-                <Button>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Novo Áudio
+                <Button onClick={() => setCreateOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Nova Lista
                 </Button>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-2xl font-bold text-primary">
-                            {audios.length}
-                        </CardTitle>
-                        <CardDescription>Total de Áudios</CardDescription>
-                    </CardHeader>
-                </Card>
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-2xl font-bold text-primary">
-                            {
-                                audios.filter((a) => a.status === "published")
-                                    .length
-                            }
-                        </CardTitle>
-                        <CardDescription>Publicados</CardDescription>
-                    </CardHeader>
-                </Card>
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-2xl font-bold text-primary">
-                            {audios.reduce(
-                                (acc, audio) => acc + audio.plays,
-                                0
-                            )}
-                        </CardTitle>
-                        <CardDescription>Total de Reproduções</CardDescription>
-                    </CardHeader>
-                </Card>
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-2xl font-bold text-primary">
-                            {audios.reduce(
-                                (acc, audio) => acc + audio.likes,
-                                0
-                            )}
-                        </CardTitle>
-                        <CardDescription>Total de Likes</CardDescription>
-                    </CardHeader>
-                </Card>
-            </div>
-
             {/* Search */}
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center gap-4">
                 <div className="relative flex-1 max-w-sm">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Buscar áudios..."
+                        placeholder="Buscar por accountcode, data, notas…"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10"
@@ -182,103 +75,169 @@ export const AdminAudios = () => {
                 </div>
             </div>
 
-            {/* Audios Table */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Áudios</CardTitle>
-                    <CardDescription>
-                        Lista completa de áudios disponíveis na plataforma
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Título</TableHead>
-                                <TableHead>Categoria</TableHead>
-                                <TableHead>Duração</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Reproduções</TableHead>
-                                <TableHead>Likes</TableHead>
-                                <TableHead>Tamanho</TableHead>
-                                <TableHead>Data Upload</TableHead>
-                                <TableHead className="w-[70px]"></TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {filteredAudios.map((audio) => (
-                                <TableRow key={audio.id}>
-                                    <TableCell>
-                                        <div>
-                                            <div className="font-medium">
-                                                {audio.title}
-                                            </div>
-                                            <div className="text-sm text-muted-foreground">
-                                                {audio.description}
-                                            </div>
+            {/* Lists grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredLists.map((l) => (
+                    <Card key={l.id} className="flex flex-col">
+                        <CardHeader className="flex flex-row items-center gap-3 pb-3">
+                            <div className="h-10 w-10 rounded-md bg-muted grid place-items-center">
+                                <ListMusic className="h-5 w-5" />
+                            </div>
+                            <div className="min-w-0">
+                                <CardTitle className="text-base truncate">
+                                    {l.accountcode} — {l.date}
+                                </CardTitle>
+                                <CardDescription className="truncate">
+                                    {l.start_time ? `${l.start_time}` : "00:00"}{" "}
+                                    → {l.end_time ? l.end_time : "23:59"}
+                                </CardDescription>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="flex-1 flex flex-col gap-3">
+                            <div className="flex items-center gap-2">
+                                <Badge variant="outline">{l.status}</Badge>
+                                {typeof l.totalAudios === "number" && (
+                                    <Badge variant="secondary">
+                                        {l.totalAudios} áudios
+                                    </Badge>
+                                )}
+                            </div>
+                            <div className="text-sm text-muted-foreground line-clamp-2">
+                                {l.notes || "—"}
+                            </div>
+                            <div className="mt-auto flex gap-2">
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={async () => {
+                                        const fresh = await getById(l.id);
+                                        setSelectedList(fresh);
+                                    }}
+                                >
+                                    Abrir
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-destructive hover:text-destructive"
+                                    onClick={() => deleteList(l.id)}
+                                >
+                                    <Trash2 className="h-4 w-4 mr-1" />
+                                    Excluir
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                ))}
+                {filteredLists.length === 0 && (
+                    <Card className="col-span-full">
+                        <CardContent className="py-10 text-center text-muted-foreground">
+                            Nenhuma lista encontrada.
+                        </CardContent>
+                    </Card>
+                )}
+            </div>
+
+            {/* List detail (áudios) */}
+            {selectedList && (
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                            <CardTitle>
+                                Lista: {selectedList.accountcode} —{" "}
+                                {selectedList.date}
+                            </CardTitle>
+                            <CardDescription>
+                                {selectedList.start_time || "00:00"} →{" "}
+                                {selectedList.end_time || "23:59"}
+                            </CardDescription>
+                        </div>
+                        <div className="flex gap-2">
+                            <Button onClick={() => setGenOpen(true)}>
+                                <Music className="h-4 w-4 mr-2" />
+                                Adicionar áudios
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                onClick={() => setSelectedList(null)}
+                            >
+                                Fechar
+                            </Button>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        {audios.length === 0 ? (
+                            <div className="py-8 text-center text-muted-foreground">
+                                Nenhum áudio nesta lista.
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                {audios.map((a) => (
+                                    <div
+                                        key={a.id ?? a.url}
+                                        className="rounded-lg border p-3"
+                                    >
+                                        <div className="font-medium truncate">
+                                            {a.title || "Sem título"}
                                         </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge
-                                            variant="outline"
-                                            className={getCategoryColor(
-                                                audio.category
-                                            )}
+                                        <a
+                                            href={a.url}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="text-xs text-primary"
                                         >
-                                            {audio.category}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>{audio.duration}</TableCell>
-                                    <TableCell>
-                                        <Badge
-                                            variant="outline"
-                                            className={getStatusColor(
-                                                audio.status
-                                            )}
-                                        >
-                                            {audio.status}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>{audio.plays}</TableCell>
-                                    <TableCell>{audio.likes}</TableCell>
-                                    <TableCell className="text-muted-foreground">
-                                        {audio.fileSize}
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground">
-                                        {audio.uploadedAt}
-                                    </TableCell>
-                                    <TableCell>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
+                                            Abrir URL
+                                        </a>
+                                        <div className="mt-2 flex gap-2">
+                                            <Badge variant="outline">
+                                                {a.status || "draft"}
+                                            </Badge>
+                                        </div>
+                                        <div className="mt-3">
+                                            {a.id && (
                                                 <Button
+                                                    size="sm"
                                                     variant="ghost"
-                                                    className="h-8 w-8 p-0"
+                                                    className="text-destructive hover:text-destructive"
+                                                    onClick={() =>
+                                                        a.id &&
+                                                        deleteAudio(a.id)
+                                                    }
                                                 >
-                                                    <MoreHorizontal className="h-4 w-4" />
+                                                    <Trash2 className="h-4 w-4 mr-1" />{" "}
+                                                    Remover
                                                 </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem>
-                                                    <Play className="h-4 w-4 mr-2" />
-                                                    Reproduzir
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem>
-                                                    <Edit className="h-4 w-4 mr-2" />
-                                                    Editar
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem className="text-destructive">
-                                                    <Trash2 className="h-4 w-4 mr-2" />
-                                                    Deletar
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Modais */}
+            <CreateAudioListModal
+                open={createOpen}
+                onClose={() => setCreateOpen(false)}
+                onCreated={(id) => {
+                    // carrega a lista recém criada e abre detalhe
+                    getById(id).then((fresh) => setSelectedList(fresh));
+                }}
+            />
+
+            {selectedList && (
+                <GenerateAudiosModal
+                    open={genOpen}
+                    onClose={() => setGenOpen(false)}
+                    listId={selectedList.id}
+                    onSaved={() => {
+                        // reload lista/áudios
+                        getById(selectedList.id).then(setSelectedList);
+                    }}
+                />
+            )}
         </div>
     );
 };
