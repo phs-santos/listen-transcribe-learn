@@ -7,12 +7,14 @@ import { Headphones, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "@/store/auth-store";
 
 export const Login = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
-    const { login, isLoading } = useAuth();
+
+    const { signIn, loginLoading: isLoading } = useAuthStore();
     const { toast } = useToast();
     const navigate = useNavigate();
 
@@ -28,21 +30,15 @@ export const Login = () => {
             return;
         }
 
-        const success = await login(email, password);
+        const { error, message } = await signIn(email, password);
 
-        if (success) {
+        if (!error) {
             toast({
                 title: "Login realizado com sucesso!",
                 description: `Bem-vindo, ${email}!`,
             });
 
-            // Navigate based on user role
-            const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-            if (storedUser.role === "admin") {
-                navigate("/admin");
-            } else {
-                navigate("/dashboard");
-            }
+            console.log("Navegando para /dashboard");
         } else {
             toast({
                 title: "Erro no login",
@@ -153,8 +149,8 @@ export const Login = () => {
                             <Button
                                 className="w-full bg-gradient-primary hover:shadow-glow transition-all duration-200 h-12"
                                 onClick={() => {
-                                    setEmail("admin@test.com");
-                                    setPassword("admin123");
+                                    setEmail("paulo@agencia56k.com.br");
+                                    setPassword("123456");
                                 }}
                             >
                                 admin
@@ -163,8 +159,8 @@ export const Login = () => {
                             <Button
                                 className="w-full bg-gradient-primary hover:shadow-glow transition-all duration-200 h-12"
                                 onClick={() => {
-                                    setEmail("user@test.com");
-                                    setPassword("user123");
+                                    setEmail("roberval@agencia56k.com.br");
+                                    setPassword("123456");
                                 }}
                             >
                                 usuario

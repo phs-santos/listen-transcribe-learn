@@ -1,9 +1,11 @@
-import { useAuth } from "@/contexts/AuthContext";
-import { LoginForm } from "@/components/LoginForm";
 import { Navigate } from "react-router-dom";
+import { useAuthStore } from "@/store/auth-store";
+import { useAppStore } from "@/store/app-store";
 
 const Index = () => {
-    const { user, isLoading } = useAuth();
+    const user = useAuthStore((s) => s.user);
+    const isLoading = useAuthStore((s) => s.loginLoading);
+    const isAuthenticated = useAppStore((s) => s.isAuthenticated);
 
     if (isLoading) {
         return (
@@ -13,7 +15,7 @@ const Index = () => {
         );
     }
 
-    if (user) {
+    if (user && isAuthenticated) {
         return user.role === "admin" ? (
             <Navigate to="/admin" replace />
         ) : (
