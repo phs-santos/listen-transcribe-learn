@@ -9,6 +9,7 @@ type NavItemDef = {
     to: string;
     icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
     label: string;
+    adminOnly?: boolean;
 };
 
 type SidebarProps = {
@@ -38,9 +39,30 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
 
     const navItems: NavItemDef[] = useMemo(
         () => [
-            { to: "/admin/users", icon: Users, label: "Usuários" },
-            { to: "/admin/audios", icon: Music, label: "Áudios" },
-            { to: "/admin/analytics", icon: BarChart3, label: "Analytics" },
+            {
+                to: "/dashboard",
+                icon: BarChart3,
+                label: "Dashboard",
+                adminOnly: false,
+            },
+            {
+                to: "/admin/users",
+                icon: Users,
+                label: "Usuários",
+                adminOnly: true,
+            },
+            {
+                to: "/admin/audios",
+                icon: Music,
+                label: "Áudios",
+                adminOnly: true,
+            },
+            {
+                to: "/admin/analytics",
+                icon: BarChart3,
+                label: "Analytics",
+                adminOnly: true,
+            },
         ],
         []
     );
@@ -175,7 +197,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
                         </div>
                         <div className="min-w-0">
                             <h2 className="text-base font-semibold leading-tight">
-                                Admin Panel
+                                PxTalk Manual
                             </h2>
                             <p className="text-xs text-muted-foreground leading-tight truncate">
                                 {user?.email}
@@ -196,11 +218,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
                 {/* navegação */}
                 <nav className="flex-1 p-4 space-y-2">
                     {navItems.map((item, i) => (
-                        <NavItem
-                            key={item.to}
-                            {...item}
-                            innerRef={i === 0 ? firstItemRef : undefined}
-                        />
+                        <>
+                            {!(item.adminOnly && user?.role !== "admin") && (
+                                <NavItem
+                                    key={item.to}
+                                    {...item}
+                                    innerRef={
+                                        i === 0 ? firstItemRef : undefined
+                                    }
+                                />
+                            )}
+                        </>
                     ))}
                 </nav>
 

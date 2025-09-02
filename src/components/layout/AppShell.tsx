@@ -1,3 +1,4 @@
+// src/components/layout/AppShell.tsx
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { cx } from "@/lib/utils";
@@ -5,7 +6,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 
-export const AdminLayout = () => {
+export const AppShell = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     return (
@@ -16,7 +17,7 @@ export const AdminLayout = () => {
                     className="flex items-center justify-between px-4 h-[56px]"
                     style={{ paddingTop: "env(safe-area-inset-top)" }}
                 >
-                    <h1 className="text-base font-semibold">Admin Panel</h1>
+                    <h1 className="text-base font-semibold">Painel</h1>
                     <Button
                         variant="ghost"
                         size="icon"
@@ -56,9 +57,10 @@ export const AdminLayout = () => {
                     id="main"
                     className={cx(
                         "flex-1",
-                        // "lg:ml-72", // reserva espaço da sidebar no desktop
+                        // se quiser empurrar no desktop, habilite:
+                        // "lg:ml-72",
                         sidebarOpen &&
-                            "pointer-events-none lg:pointer-events-auto" // bloqueia interação no mobile
+                            "pointer-events-none lg:pointer-events-auto"
                     )}
                     aria-hidden={sidebarOpen ? true : undefined}
                 >
