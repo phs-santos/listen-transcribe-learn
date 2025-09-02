@@ -14,6 +14,7 @@ interface AuthState {
     user: User | null;
 
     signIn: (email: string, password: string) => Promise<SignInResponse>;
+    signOut: () => void;
     clear: () => void;
 }
 
@@ -67,6 +68,11 @@ export const useAuthStore = create<AuthState>()(
                 } finally {
                     set({ loginLoading: false });
                 }
+            },
+
+            signOut: () => {
+                set({ user: null });
+                useAppStore.getState().setIsAuthenticated(false);
             },
 
             clear: () => {
