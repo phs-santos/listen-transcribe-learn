@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Headphones, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/auth-store";
 
@@ -38,7 +37,7 @@ export const Login = () => {
                 description: `Bem-vindo, ${email}!`,
             });
 
-            console.log("Navegando para /dashboard");
+            navigate("/dashboard");
         } else {
             toast({
                 title: "Erro no login",

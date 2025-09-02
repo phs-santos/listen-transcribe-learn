@@ -9,14 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-    Search,
-    UserPlus,
-    Edit,
-    Trash2,
-    RefreshCw,
-    Shield,
-} from "lucide-react";
+import { Search, Edit, Trash2, RefreshCw, Shield } from "lucide-react";
 import { useAdmin } from "@/hooks/use-admin";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth-store";
@@ -26,9 +19,12 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { NewUserModal } from "@/components/admin/NewUserModal";
 
 export const AdminUsers = () => {
     const [searchTerm, setSearchTerm] = useState("");
+    const [openNew, setOpenNew] = useState(false);
+
     const {
         users,
         loading,
@@ -105,10 +101,16 @@ export const AdminUsers = () => {
                         <RefreshCw className="h-4 w-4 mr-2" />
                         Atualizar
                     </Button>
-                    <Button onClick={handleCreate}>
-                        <UserPlus className="h-4 w-4 mr-2" />
+
+                    <Button onClick={() => setOpenNew(true)}>
                         Novo Usuário
                     </Button>
+
+                    <NewUserModal
+                        open={openNew}
+                        onClose={() => setOpenNew(false)}
+                        onCreated={() => refresh()}
+                    />
                 </div>
             </div>
 
@@ -236,14 +238,6 @@ export const AdminUsers = () => {
                                                 )}
                                             >
                                                 {user.role}
-                                            </Badge>
-                                            <Badge
-                                                variant="outline"
-                                                className={cn(
-                                                    getStatusColor(user.status)
-                                                )}
-                                            >
-                                                {user.status}
                                             </Badge>
                                         </div>
 
