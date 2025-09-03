@@ -1,4 +1,3 @@
-// src/App.tsx
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,7 +14,7 @@ import { AdminAnalytics } from "./pages/admin/AdminAnalytics";
 import { NotFound } from "./pages/NotFound";
 
 import { AppShell } from "@/components/layout/AppShell";
-import { AudioListDetail } from "./pages/AudioListDetail";
+import { AdminAudioListDetail } from "./pages/admin/AdminAudioListDetail";
 
 const queryClient = new QueryClient();
 
@@ -47,7 +46,7 @@ const App = () => (
                             <Route path="/dashboard" element={<Dashboard />} />
                             <Route
                                 path="/audio-lists/:id"
-                                element={<AudioListDetail />}
+                                element={<AdminAudioListDetail />}
                             />
 
                             <Route path="/admin">

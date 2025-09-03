@@ -12,6 +12,7 @@ export type AudioList = {
     created_at?: string;
     updated_at?: string;
     totalAudios?: number;
+    totalDuration?: number;
     audios?: any[];
 };
 

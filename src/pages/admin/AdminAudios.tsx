@@ -23,8 +23,7 @@ function formatDatetime(str?: string) {
 }
 
 export const AdminAudios = () => {
-    const { lists, loading, error, listAll, deleteList, getById } =
-        useAudioLists();
+    const { lists, listAll, deleteList, getById } = useAudioLists();
     const [searchTerm, setSearchTerm] = useState("");
     const [createOpen, setCreateOpen] = useState(false);
     const [genOpen, setGenOpen] = useState(false);
@@ -37,6 +36,7 @@ export const AdminAudios = () => {
     useEffect(() => {
         listAll();
     }, [listAll]);
+
     useEffect(() => {
         if (selectedList?.id) load();
     }, [selectedList?.id, load]);
@@ -82,7 +82,7 @@ export const AdminAudios = () => {
             </div>
 
             {/* Lists grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fit,_minmax(280px,_1fr))]">
                 {filteredLists.map((l) => (
                     <Card key={l.id} className="flex flex-col">
                         <CardHeader className="flex flex-row items-center gap-3 pb-3">

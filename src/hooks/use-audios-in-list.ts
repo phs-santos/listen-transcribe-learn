@@ -74,12 +74,13 @@ export function useAudiosInList(listId: number | null) {
     );
 
     const saveHumanTranscript = useCallback(
-        async (audioId: number, transcript: string) => {
+        async (audioId: number, transcript: string, tags: string[]) => {
             const { data } = await api.post<AudioItem>(
                 `/audio-lists/${audioId}/transcription/human`,
                 {
                     transcript_human: transcript,
                     transcriber_id: userId,
+                    tags,
                 }
             );
 
@@ -94,9 +95,12 @@ export function useAudiosInList(listId: number | null) {
 
     const saveAiTranscript = useCallback(
         async (audioId: number, transcript: string) => {
-            const { data } = await api.patch<AudioItem>(`/audios/${audioId}`, {
-                transcript_ai: transcript,
-            });
+            const { data } = await api.post<AudioItem>(
+                `/audio-lists/${audioId}/transcription/ai`,
+                {
+                    transcript_ai: transcript,
+                }
+            );
 
             setAudios((prev) =>
                 prev.map((a) => (a.id === audioId ? { ...a, ...data } : a))

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAudioLists } from "@/hooks/use-audio-lists";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,18 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
+
+// Utilitário para converter segundos em hh:mm:ss
+function formatDuration(seconds: number): string {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    return [
+        hrs.toString().padStart(2, "0"),
+        mins.toString().padStart(2, "0"),
+        secs.toString().padStart(2, "0"),
+    ].join(":");
+}
 
 export const Dashboard = () => {
     const { lists, listAll, loading } = useAudioLists();
@@ -25,8 +37,24 @@ export const Dashboard = () => {
         list.notes?.toLowerCase().includes(search.toLowerCase())
     );
 
+    const totals = useMemo(() => {
+        let totalAudios = 0;
+        let totalSeconds = 0;
+
+        for (const list of lists) {
+            totalAudios += Number(list.totalAudios || 0);
+            totalSeconds += Number(list.totalDuration || 0);
+        }
+
+        return {
+            totalAudios,
+            totalFormattedDuration: formatDuration(totalSeconds),
+        };
+    }, [lists]);
+
     return (
         <div className="space-y-6">
+            {/* HEADER */}
             <div className="flex items-center justify-between gap-3">
                 <div>
                     <h1 className="text-3xl font-bold">Minhas listas</h1>
@@ -36,6 +64,27 @@ export const Dashboard = () => {
                 </div>
             </div>
 
+            {/* Totais */}
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fit,_minmax(280px,_1fr))]">
+                <Card>
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-2xl font-bold text-primary">
+                            {totals.totalAudios}
+                        </CardTitle>
+                        <CardDescription>Total de Áudios</CardDescription>
+                    </CardHeader>
+                </Card>
+                <Card>
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-2xl font-bold text-primary">
+                            {totals.totalFormattedDuration}
+                        </CardTitle>
+                        <CardDescription>Duração Total</CardDescription>
+                    </CardHeader>
+                </Card>
+            </div>
+
+            {/* Filtro */}
             <div className="relative max-w-sm">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -46,34 +95,51 @@ export const Dashboard = () => {
                 />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filtered.map((list) => (
-                    <Card key={list.id}>
-                        <CardHeader>
-                            <CardTitle className="truncate">
-                                {list.notes || "Lista sem título"}
-                            </CardTitle>
-                            <CardDescription>
-                                {new Date(list.start_date).toLocaleDateString()}{" "}
-                                → {new Date(list.end_date).toLocaleDateString()}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex justify-between items-end">
-                            <span className="text-sm text-muted-foreground">
-                                {list.totalAudios ?? list.audios?.length ?? 0}{" "}
-                                áudios
-                            </span>
-                            <Button
-                                size="sm"
-                                onClick={() =>
-                                    navigate(`/audio-lists/${list.id}`)
-                                }
-                            >
-                                Abrir Lista
-                            </Button>
-                        </CardContent>
-                    </Card>
-                ))}
+            {/* Listas */}
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fit,_minmax(280px,_1fr))]">
+                {filtered.map((list) => {
+                    const qtd = Number(list.totalAudios || 0);
+                    const duration = Number(list.totalDuration || 0);
+
+                    return (
+                        <Card key={list.id}>
+                            <CardHeader>
+                                <CardTitle className="truncate">
+                                    {list.notes || "Lista sem título"}
+                                </CardTitle>
+                                <CardDescription>
+                                    {new Date(
+                                        list.start_date
+                                    ).toLocaleDateString()}{" "}
+                                    →{" "}
+                                    {new Date(
+                                        list.end_date
+                                    ).toLocaleDateString()}
+                                </CardDescription>
+                            </CardHeader>
+
+                            <CardContent className="flex flex-col gap-1 items-start">
+                                <p className="text-sm text-muted-foreground">
+                                    <strong>{qtd}</strong> áudios
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    <strong>{formatDuration(duration)}</strong>{" "}
+                                    de áudio
+                                </p>
+
+                                <Button
+                                    size="sm"
+                                    onClick={() =>
+                                        navigate(`/audio-lists/${list.id}`)
+                                    }
+                                    className="mt-2"
+                                >
+                                    Abrir Lista
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    );
+                })}
             </div>
 
             {loading && (

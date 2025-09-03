@@ -77,6 +77,7 @@ export const AdminUsers = () => {
                         Visualize e gerencie todos os usuários da plataforma
                     </p>
                 </div>
+
                 <div className="flex items-center gap-2">
                     <Button
                         variant="outline"
@@ -159,7 +160,7 @@ export const AdminUsers = () => {
             {/* Users as Cards */}
             {!loading && !error && (
                 <TooltipProvider>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fit,_minmax(280px,_1fr))]">
                         {filteredUsers.map((user: any) => {
                             const initials = (user.name || user.email || "?")
                                 .slice(0, 2)

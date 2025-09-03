@@ -47,6 +47,9 @@ export const Login = () => {
         }
     };
 
+    const isDev = true; //
+    // const isDev = import.meta.env.NODE_ENV === "development";
+
     return (
         <div className="min-h-screen flex items-center justify-center bg-background p-4">
             <div className="w-full max-w-md">
@@ -140,32 +143,34 @@ export const Login = () => {
                     </form>
 
                     {/* Footer */}
-                    <div className="mt-6 text-center">
-                        <p className="text-sm text-muted-foreground mb-2">
-                            Credenciais de teste:
-                        </p>
-                        <div className="flex items-center gap-4 text-muted-foreground space-y-1">
-                            <Button
-                                className="w-full bg-gradient-primary hover:shadow-glow transition-all duration-200 h-12"
-                                onClick={() => {
-                                    setEmail("paulo@agencia56k.com.br");
-                                    setPassword("123456");
-                                }}
-                            >
-                                admin
-                            </Button>
+                    {isDev && (
+                        <div className="mt-6 text-center">
+                            <p className="text-sm text-muted-foreground mb-2">
+                                Credenciais de teste:
+                            </p>
+                            <div className="flex items-center gap-4 text-muted-foreground space-y-1">
+                                <Button
+                                    className="w-full bg-gradient-primary hover:shadow-glow transition-all duration-200 h-12"
+                                    onClick={() => {
+                                        setEmail("paulo@agencia56k.com.br");
+                                        setPassword("123456");
+                                    }}
+                                >
+                                    admin
+                                </Button>
 
-                            <Button
-                                className="w-full bg-gradient-primary hover:shadow-glow transition-all duration-200 h-12"
-                                onClick={() => {
-                                    setEmail("roberval@agencia56k.com.br");
-                                    setPassword("123456");
-                                }}
-                            >
-                                usuario
-                            </Button>
+                                <Button
+                                    className="w-full bg-gradient-primary hover:shadow-glow transition-all duration-200 h-12"
+                                    onClick={() => {
+                                        setEmail("roberval@agencia56k.com.br");
+                                        setPassword("123456");
+                                    }}
+                                >
+                                    usuario
+                                </Button>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </Card>
             </div>
         </div>

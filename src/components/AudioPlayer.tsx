@@ -1,7 +1,7 @@
-// Novo componente para Player de Audio com velocidade e seek bar clicável
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { RotateCcw, Pause, Play } from "lucide-react";
+import { RotateCcw, Pause, Play, Download } from "lucide-react";
+import { cn } from "@/lib/utils"; // caso esteja usando clsx/cn para classes condicionais
 
 interface AudioPlayerProps {
     src: string;
@@ -41,8 +41,11 @@ export const AudioPlayer = ({ src }: AudioPlayerProps) => {
 
     const togglePlay = () => {
         if (!audioRef.current) return;
-        if (isPlaying) audioRef.current.pause();
-        else audioRef.current.play();
+        if (isPlaying) {
+            audioRef.current.pause();
+        } else {
+            audioRef.current.play();
+        }
         setIsPlaying(!isPlaying);
     };
 
@@ -57,6 +60,7 @@ export const AudioPlayer = ({ src }: AudioPlayerProps) => {
         const bar = progressBarRef.current;
         const audio = audioRef.current;
         if (!bar || !audio) return;
+
         const rect = bar.getBoundingClientRect();
         const clickX = e.clientX - rect.left;
         const width = rect.width;
@@ -73,42 +77,45 @@ export const AudioPlayer = ({ src }: AudioPlayerProps) => {
     };
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-5">
             <audio ref={audioRef} src={src} preload="metadata" />
 
             {/* Progress Bar */}
-            <div className="w-full">
-                <div className="flex justify-between text-sm text-muted-foreground mb-1">
+            <div className="space-y-1">
+                <div className="flex justify-between text-xs text-muted-foreground">
                     <span>{formatTime(currentTime)}</span>
                     <span>{formatTime(duration)}</span>
                 </div>
                 <div
                     ref={progressBarRef}
                     onClick={handleSeek}
-                    className="relative w-full h-3 rounded-full bg-secondary cursor-pointer"
+                    className="relative w-full h-3 bg-muted rounded-full cursor-pointer"
                 >
                     <div
-                        className="absolute top-0 left-0 h-3 bg-gradient-primary rounded-full"
-                        style={{ width: `${(currentTime / duration) * 100}%` }}
+                        className="absolute top-0 left-0 h-3 bg-primary rounded-full"
+                        style={{
+                            width: `${(currentTime / duration) * 100 || 0}%`,
+                        }}
                     />
                 </div>
             </div>
 
             {/* Controls */}
-            <div className="flex items-center justify-between">
-                <div className="flex gap-4 items-center">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                {/* Buttons */}
+                <div className="flex items-center gap-3">
                     <Button
                         variant="outline"
-                        size="lg"
+                        size="icon"
                         onClick={resetAudio}
-                        className="border-border/50 hover:border-primary/50"
+                        className="border-border hover:border-primary"
                     >
                         <RotateCcw className="w-5 h-5" />
                     </Button>
                     <Button
-                        size="lg"
+                        size="icon"
                         onClick={togglePlay}
-                        className="bg-gradient-primary hover:shadow-glow w-16 h-16 rounded-full"
+                        className="bg-primary hover:bg-primary-dark text-white w-14 h-14 rounded-full"
                     >
                         {isPlaying ? (
                             <Pause className="w-6 h-6" />
@@ -118,24 +125,47 @@ export const AudioPlayer = ({ src }: AudioPlayerProps) => {
                     </Button>
                 </div>
 
-                {/* Playback Rate */}
-                <div className="text-sm flex items-center gap-2">
-                    <label htmlFor="speed" className="text-muted-foreground">
-                        Velocidade:
-                    </label>
-                    <select
-                        id="speed"
-                        value={playbackRate}
-                        onChange={(e) =>
-                            setPlaybackRate(parseFloat(e.target.value))
-                        }
-                        className="bg-background border border-border rounded px-2 py-1 text-foreground"
+                {/* Speed & Download */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                    {/* Velocidade */}
+                    <div className="flex items-center gap-2 text-sm">
+                        <label
+                            htmlFor="speed"
+                            className="text-muted-foreground"
+                        >
+                            Velocidade:
+                        </label>
+                        <select
+                            id="speed"
+                            value={playbackRate}
+                            onChange={(e) =>
+                                setPlaybackRate(parseFloat(e.target.value))
+                            }
+                            className="bg-background border border-border rounded px-2 py-1 text-foreground"
+                        >
+                            <option value={0.5}>0.5x</option>
+                            <option value={1}>1x</option>
+                            <option value={1.5}>1.5x</option>
+                            <option value={2}>2x</option>
+                        </select>
+                    </div>
+
+                    {/* Download */}
+                    <Button
+                        variant="ghost"
+                        className="text-primary hover:underline gap-2"
+                        asChild
                     >
-                        <option value={0.5}>0.5x</option>
-                        <option value={1}>1x</option>
-                        <option value={1.5}>1.5x</option>
-                        <option value={2}>2x</option>
-                    </select>
+                        <a
+                            href={src}
+                            download
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            <Download className="w-4 h-4" />
+                            Baixar
+                        </a>
+                    </Button>
                 </div>
             </div>
         </div>
