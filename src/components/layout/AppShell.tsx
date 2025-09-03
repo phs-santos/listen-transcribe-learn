@@ -5,6 +5,7 @@ import { cx } from "@/lib/utils";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const AppShell = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -18,17 +19,20 @@ export const AppShell = () => {
                     style={{ paddingTop: "env(safe-area-inset-top)" }}
                 >
                     <h1 className="text-base font-semibold">Painel</h1>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setSidebarOpen(true)}
-                        aria-label="Abrir menu"
-                        aria-controls="sidebar"
-                        aria-expanded={sidebarOpen}
-                        className="h-10 w-10"
-                    >
-                        <Menu className="h-5 w-5" />
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <ThemeToggle />
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setSidebarOpen(true)}
+                            aria-label="Abrir menu"
+                            aria-controls="sidebar"
+                            aria-expanded={sidebarOpen}
+                            className="h-10 w-10"
+                        >
+                            <Menu className="h-5 w-5" />
+                        </Button>
+                    </div>
                 </div>
             </header>
             {/* spacer p/ header fixo */}

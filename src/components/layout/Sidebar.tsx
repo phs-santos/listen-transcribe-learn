@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Users, Music, BarChart3, LogOut, X } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
 import { cx } from "@/lib/utils";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 type NavItemDef = {
     to: string;
@@ -203,15 +204,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
                                 {user?.email}
                             </p>
                         </div>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={onClose}
-                            className="ml-auto lg:hidden"
-                            aria-label="Fechar menu"
-                        >
-                            <X className="h-5 w-5" />
-                        </Button>
+                        <div className="ml-auto flex items-center gap-2">
+                            <ThemeToggle />
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={onClose}
+                                className="lg:hidden"
+                                aria-label="Fechar menu"
+                            >
+                                <X className="h-5 w-5" />
+                            </Button>
+                        </div>
                     </div>
                 </div>
 
