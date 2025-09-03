@@ -47,8 +47,7 @@ export const Login = () => {
         }
     };
 
-    const isDev = true; //
-    // const isDev = import.meta.env.NODE_ENV === "development";
+    const isDev = import.meta.env.DEV;
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-background p-4">
