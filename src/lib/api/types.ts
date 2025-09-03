@@ -5,7 +5,7 @@
  * Centraliza interfaces de request/response para manter consistência.
  */
 
-import { User } from '@/types/user'
+// import { User } from '@/types/user'
 
 // ============= BASE TYPES =============
 

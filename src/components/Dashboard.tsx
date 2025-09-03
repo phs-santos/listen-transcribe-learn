@@ -225,8 +225,10 @@ export const Dashboard = ({ userEmail, onLogout }: DashboardProps) => {
         <AudioModal
           isOpen={isModalOpen}
           onClose={closeModal}
+          audioId={parseInt(selectedAudio.id)}
           audioTitle={selectedAudio.title}
           audioSrc={selectedAudio.src}
+          listId={1}
         />
       )}
     </div>
