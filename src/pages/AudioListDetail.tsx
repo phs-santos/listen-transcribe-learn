@@ -4,13 +4,14 @@ import { useAudioLists } from "@/hooks/use-audio-lists";
 import { AudioCard } from "@/components/AudioCard";
 import { AudioModal } from "@/components/AudioModal";
 import { Loader2 } from "lucide-react";
+import { AudioItem } from "@/hooks/use-audios-in-list";
 
 export function AudioListDetail() {
     const { id } = useParams();
     const { getById } = useAudioLists();
-    const [audios, setAudios] = useState<any[]>([]);
+    const [audios, setAudios] = useState<AudioItem[]>([]);
     const [loading, setLoading] = useState(false);
-    const [selectedAudio, setSelectedAudio] = useState<any | null>(null);
+    const [selectedAudio, setSelectedAudio] = useState<AudioItem | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
@@ -50,9 +51,7 @@ export function AudioListDetail() {
                         <AudioCard
                             key={audio.id}
                             id={String(audio.id)}
-                            title={
-                                audio.title || audio.linkedid || "Sem título"
-                            }
+                            title={audio.title || "Sem título"}
                             duration={`${audio.duration || 0}s`}
                             description={audio.external_id || undefined}
                             onPlay={() => handleAudioPlay(audio)}
@@ -67,6 +66,8 @@ export function AudioListDetail() {
                     onClose={closeModal}
                     audioId={selectedAudio.id}
                     listId={Number(id)}
+                    transcript_human={selectedAudio.transcript_human}
+                    transcript_ai={selectedAudio.transcript_ai}
                     audioTitle={
                         selectedAudio.title ||
                         selectedAudio.linkedid ||

@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Play, Pause, RotateCcw, Save, Sparkles } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { Save } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAudiosInList } from "@/hooks/use-audios-in-list";
 import { AudioPlayer } from "./AudioPlayer";
@@ -21,6 +21,8 @@ interface AudioModalProps {
     audioId: number;
     audioTitle: string;
     audioSrc: string;
+    transcript_human?: string | null;
+    transcript_ai?: string | null;
     listId: number;
 }
 
@@ -30,66 +32,25 @@ export const AudioModal = ({
     audioId,
     audioTitle,
     audioSrc,
+    transcript_human,
+    transcript_ai,
     listId,
 }: AudioModalProps) => {
-    const audioRef = useRef<HTMLAudioElement>(null);
     const { toast } = useToast();
     const { saveHumanTranscript, saveAiTranscript } = useAudiosInList(listId);
 
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [currentTime, setCurrentTime] = useState(0);
-    const [duration, setDuration] = useState(0);
-
     const [userTranscription, setUserTranscription] = useState("");
-    const [llmTranscription, setLlmTranscription] = useState("");
-
-    const [isGenerating, setIsGenerating] = useState(false);
     const [isTranscriptionSaved, setIsTranscriptionSaved] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
 
+    // Preencher transcrição ao abrir o modal
     useEffect(() => {
-        const audio = audioRef.current;
-        if (!audio) return;
-
-        const updateTime = () => setCurrentTime(audio.currentTime);
-        const updateDuration = () => setDuration(audio.duration || 0);
-
-        audio.addEventListener("timeupdate", updateTime);
-        audio.addEventListener("loadedmetadata", updateDuration);
-        audio.addEventListener("ended", () => setIsPlaying(false));
-
-        return () => {
-            audio.removeEventListener("timeupdate", updateTime);
-            audio.removeEventListener("loadedmetadata", updateDuration);
-            audio.removeEventListener("ended", () => setIsPlaying(false));
-        };
-    }, [audioSrc]);
-
-    const formatTime = (time: number) => {
-        const minutes = Math.floor(time / 60);
-        const seconds = Math.floor(time % 60);
-        return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-    };
-
-    const togglePlay = () => {
-        const audio = audioRef.current;
-        if (!audio) return;
-
-        if (isPlaying) {
-            audio.pause();
-        } else {
-            audio.play();
+        if (isOpen) {
+            setUserTranscription(transcript_human || transcript_ai || "");
+            setIsTranscriptionSaved(!!transcript_human);
+            setIsEditing(false);
         }
-        setIsPlaying(!isPlaying);
-    };
-
-    const resetAudio = () => {
-        const audio = audioRef.current;
-        if (audio) {
-            audio.currentTime = 0;
-            setCurrentTime(0);
-        }
-    };
+    }, [isOpen, transcript_human, transcript_ai]);
 
     const handleSaveTranscription = async () => {
         if (!userTranscription.trim()) {
@@ -120,28 +81,6 @@ export const AudioModal = ({
 
     const handleEditTranscription = () => setIsEditing(true);
 
-    const generateLLMTranscription = async () => {
-        setIsGenerating(true);
-        try {
-            const aiResult =
-                "Esta é uma transcrição gerada automaticamente pela IA. (exemplo)";
-            await saveAiTranscript(audioId, aiResult);
-            setLlmTranscription(aiResult);
-            toast({
-                title: "Transcrição IA gerada",
-                description: "Texto salvo com sucesso.",
-            });
-        } catch (err) {
-            toast({
-                title: "Erro ao gerar transcrição da IA",
-                description: "Tente novamente.",
-                variant: "destructive",
-            });
-        } finally {
-            setIsGenerating(false);
-        }
-    };
-
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="max-w-6xl bg-background border-border/50 backdrop-blur-glass">
@@ -149,7 +88,6 @@ export const AudioModal = ({
                     <DialogTitle className="text-lg font-semibold text-foreground">
                         {audioTitle}
                     </DialogTitle>
-
                     <DialogDescription className="text-sm text-muted-foreground">
                         Transcreva o áudio abaixo com atenção.
                     </DialogDescription>
@@ -221,30 +159,10 @@ export const AudioModal = ({
                                             <Label className="text-sm">
                                                 Transcrição da IA
                                             </Label>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={
-                                                    generateLLMTranscription
-                                                }
-                                                disabled={isGenerating}
-                                            >
-                                                <Sparkles className="w-4 h-4 mr-2" />
-                                                {isGenerating
-                                                    ? "Gerando..."
-                                                    : "Gerar IA"}
-                                            </Button>
                                         </div>
-
-                                        <div className="p-3 bg-background/50 border rounded-md min-h-[100px] text-sm">
-                                            {llmTranscription ? (
-                                                <p>{llmTranscription}</p>
-                                            ) : (
-                                                <p className="text-muted-foreground italic">
-                                                    Clique em "Gerar IA" para
-                                                    transcrever automaticamente
-                                                </p>
-                                            )}
+                                        <div className="text-sm text-muted-foreground whitespace-pre-line">
+                                            {transcript_ai ||
+                                                "Nenhuma transcrição automática disponível."}
                                         </div>
                                     </div>
                                 )}

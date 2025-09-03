@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { getApiService } from "@/lib/api/services";
 import type { AudioList } from "./use-audio-lists";
+import { useAuthStore } from "@/store/auth-store";
 
 export type AudioItem = {
     id?: number;
@@ -11,6 +12,8 @@ export type AudioItem = {
     external_id?: string | null;
     transcript_human?: string | null;
     transcript_ai?: string | null;
+    duration?: number;
+    linkedid?: string | null;
 };
 
 export type GeneratePayload = {
@@ -27,6 +30,7 @@ export function useAudiosInList(listId: number | null) {
     const [audios, setAudios] = useState<AudioItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const userId = useAuthStore((s) => s.user.id);
 
     const load = useCallback(async () => {
         if (!listId) return;
@@ -71,9 +75,13 @@ export function useAudiosInList(listId: number | null) {
 
     const saveHumanTranscript = useCallback(
         async (audioId: number, transcript: string) => {
-            const { data } = await api.patch<AudioItem>(`/audios/${audioId}`, {
-                transcript_human: transcript,
-            });
+            const { data } = await api.post<AudioItem>(
+                `/audio-lists/${audioId}/transcription/human`,
+                {
+                    transcript_human: transcript,
+                    transcriber_id: userId,
+                }
+            );
 
             setAudios((prev) =>
                 prev.map((a) => (a.id === audioId ? { ...a, ...data } : a))
