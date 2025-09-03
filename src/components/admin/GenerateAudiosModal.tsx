@@ -102,8 +102,11 @@ export function GenerateAudiosModal({
         const audios = tickets.data
             .filter((t) => selected.includes(t.id) && t.audiorecord)
             .map((t) => ({
-                title: t.linkedid,
-                url: t.audiorecord!,
+                title: t.id,
+                banco_id: t.id,
+                url: t.audiorecord,
+                linkedid: t.linkedid,
+                duration: t.duration,
             }));
 
         setLoading(true);

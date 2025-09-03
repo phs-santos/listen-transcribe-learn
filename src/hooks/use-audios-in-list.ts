@@ -47,22 +47,13 @@ export function useAudiosInList(listId: number | null) {
         }
     }, [api, listId]);
 
-    // preview (não salva)
-    const generatePreview = useCallback(
-        async (payload: GeneratePayload) => {
-            const { data } = await api.post<AudioItem[]>(
-                `/audios/generate/preview`,
-                payload
-            );
-            return data ?? [];
-        },
-        [api]
-    );
-
     // salva em bulk na lista
     const saveBulk = useCallback(
         async (items: AudioItem[]) => {
             if (!listId) throw new Error("listId inválido");
+
+            console.log("Salvando áudios em bulk", { listId, items });
+
             const { data } = await api.post<{
                 created: number;
                 skipped: number;
@@ -89,7 +80,6 @@ export function useAudiosInList(listId: number | null) {
         loading,
         error,
         load,
-        generatePreview,
         saveBulk,
         deleteAudio,
     };
