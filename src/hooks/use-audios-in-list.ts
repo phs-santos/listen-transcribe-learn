@@ -3,8 +3,8 @@ import { getApiService } from "@/lib/api/services";
 import type { AudioList } from "./use-audio-lists";
 
 export type AudioItem = {
-    id?: number; // UUID
-    list_id?: number; // UUID
+    id?: number;
+    list_id?: number;
     title?: string;
     url: string;
     status?: "draft" | "published";
@@ -15,8 +15,8 @@ export type AudioItem = {
 
 export type GeneratePayload = {
     accountcode: string;
-    start_date?: string; // HH:mm
-    end_date?: string; // HH:mm
+    start_date?: string;
+    end_date?: string;
 };
 
 export function useAudiosInList(listId: number | null) {
@@ -28,7 +28,6 @@ export function useAudiosInList(listId: number | null) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // carrega a lista e seus áudios
     const load = useCallback(async () => {
         if (!listId) return;
         try {
@@ -47,19 +46,15 @@ export function useAudiosInList(listId: number | null) {
         }
     }, [api, listId]);
 
-    // salva em bulk na lista
     const saveBulk = useCallback(
         async (items: AudioItem[]) => {
             if (!listId) throw new Error("listId inválido");
 
-            console.log("Salvando áudios em bulk", { listId, items });
-
             const { data } = await api.post<{
                 created: number;
                 skipped: number;
-            }>(`/audio-lists/${listId}/audios/bulk`, {
-                items,
-            });
+            }>(`/audio-lists/${listId}/audios/bulk`, { items });
+
             await load();
             return data;
         },
@@ -68,9 +63,38 @@ export function useAudiosInList(listId: number | null) {
 
     const deleteAudio = useCallback(
         async (listId: number, id: number) => {
-            // se você criar rota DELETE /audios/:id
             await api.delete(`/audio-lists/${listId}/audios/${id}`);
             setAudios((xs) => xs.filter((x) => x.id !== id));
+        },
+        [api]
+    );
+
+    const saveHumanTranscript = useCallback(
+        async (audioId: number, transcript: string) => {
+            const { data } = await api.patch<AudioItem>(`/audios/${audioId}`, {
+                transcript_human: transcript,
+            });
+
+            setAudios((prev) =>
+                prev.map((a) => (a.id === audioId ? { ...a, ...data } : a))
+            );
+
+            return data;
+        },
+        [api]
+    );
+
+    const saveAiTranscript = useCallback(
+        async (audioId: number, transcript: string) => {
+            const { data } = await api.patch<AudioItem>(`/audios/${audioId}`, {
+                transcript_ai: transcript,
+            });
+
+            setAudios((prev) =>
+                prev.map((a) => (a.id === audioId ? { ...a, ...data } : a))
+            );
+
+            return data;
         },
         [api]
     );
@@ -82,5 +106,7 @@ export function useAudiosInList(listId: number | null) {
         load,
         saveBulk,
         deleteAudio,
+        saveHumanTranscript,
+        saveAiTranscript,
     };
 }
