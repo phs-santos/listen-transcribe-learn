@@ -206,7 +206,10 @@ export const AdminAudios = () => {
                                                     className="text-destructive hover:text-destructive"
                                                     onClick={() =>
                                                         a.id &&
-                                                        deleteAudio(a.id)
+                                                        deleteAudio(
+                                                            selectedList.id,
+                                                            a.id
+                                                        )
                                                     }
                                                 >
                                                     <Trash2 className="h-4 w-4 mr-1" />{" "}

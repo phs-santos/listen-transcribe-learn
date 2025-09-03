@@ -2,17 +2,17 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { getApiService } from "@/lib/api/services";
 
 export type AudioList = {
-    id: string; // UUID
+    id: number; // UUID
     accountcode: string;
-    start_date: string; // ISO datetime: "2025-09-02T08:00:00"
-    end_date: string; // ISO datetime: "2025-09-02T18:00:00"
+    start_date: string;
+    end_date: string;
     status: "draft" | "generated" | "saved" | "published";
     notes?: string | null;
     created_by?: number | null;
     created_at?: string;
     updated_at?: string;
     totalAudios?: number;
-    audios?: any[]; // quando GET /audio-lists/:id
+    audios?: any[];
 };
 
 export function useAudioLists() {
@@ -67,7 +67,7 @@ export function useAudioLists() {
     );
 
     const getById = useCallback(
-        async (id: string) => {
+        async (id: number) => {
             const { data } = await api.get<AudioList>(`/audio-lists/${id}`);
             setLists((prev) => {
                 const i = prev.findIndex((x) => x.id === id);
@@ -82,7 +82,7 @@ export function useAudioLists() {
     );
 
     const updateList = useCallback(
-        async (id: string, patch: Partial<AudioList>) => {
+        async (id: number, patch: Partial<AudioList>) => {
             const { data } = await api.patch<AudioList>(
                 `/audio-lists/${id}`,
                 patch
@@ -96,7 +96,7 @@ export function useAudioLists() {
     );
 
     const deleteList = useCallback(
-        async (id: string) => {
+        async (id: number) => {
             const prev = lists;
             setLists((xs) => xs.filter((x) => x.id !== id));
             try {

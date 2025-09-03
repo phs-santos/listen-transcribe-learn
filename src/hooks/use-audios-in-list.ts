@@ -3,8 +3,8 @@ import { getApiService } from "@/lib/api/services";
 import type { AudioList } from "./use-audio-lists";
 
 export type AudioItem = {
-    id?: string; // UUID
-    list_id?: string; // UUID
+    id?: number; // UUID
+    list_id?: number; // UUID
     title?: string;
     url: string;
     status?: "draft" | "published";
@@ -15,12 +15,11 @@ export type AudioItem = {
 
 export type GeneratePayload = {
     accountcode: string;
-    date: string; // YYYY-MM-DD
-    start_time?: string; // HH:mm
-    end_time?: string; // HH:mm
+    start_date?: string; // HH:mm
+    end_date?: string; // HH:mm
 };
 
-export function useAudiosInList(listId: string | null) {
+export function useAudiosInList(listId: number | null) {
     const api = useMemo(
         () => getApiService("backend_local", "private_token"),
         []
@@ -77,9 +76,9 @@ export function useAudiosInList(listId: string | null) {
     );
 
     const deleteAudio = useCallback(
-        async (id: string) => {
+        async (listId: number, id: number) => {
             // se você criar rota DELETE /audios/:id
-            await api.delete(`/audios/${id}`);
+            await api.delete(`/audio-lists/${listId}/audios/${id}`);
             setAudios((xs) => xs.filter((x) => x.id !== id));
         },
         [api]

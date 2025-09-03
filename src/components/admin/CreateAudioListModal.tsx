@@ -42,7 +42,7 @@ export function CreateAudioListModal({
 }: {
     open: boolean;
     onClose: () => void;
-    onCreated?: (id: string) => void;
+    onCreated?: (id: number) => void;
 }) {
     const { createList } = useAudioLists();
     const [loading, setLoading] = React.useState(false);

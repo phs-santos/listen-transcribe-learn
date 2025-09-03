@@ -1,8 +1,3 @@
-// src/components/admin/GenerateAudiosModal.tsx
-import * as React from "react";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
 import {
     Dialog,
     DialogContent,
@@ -12,24 +7,14 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, Link2, Music } from "lucide-react";
-import {
-    useAudiosInList,
-    AudioItem,
-    GeneratePayload,
-} from "@/hooks/use-audios-in-list";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2 } from "lucide-react";
+import { useAudiosInList, GeneratePayload } from "@/hooks/use-audios-in-list";
 import { AudioList } from "@/hooks/use-audio-lists";
-
-const schema = z.object({
-    accountcode: z.string().min(2),
-    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    start_time: z.string().optional(),
-    end_time: z.string().optional(),
-});
-type FormValues = z.infer<typeof schema>;
+import { useEffect, useState } from "react";
+import { toLocalISOString } from "@/utils/general";
+import { useTickets } from "@/hooks/use-tickets";
 
 export function GenerateAudiosModal({
     open,
@@ -39,63 +24,92 @@ export function GenerateAudiosModal({
 }: {
     open: boolean;
     onClose: () => void;
-    list: AudioList; // <- obrigatório
+    list: AudioList;
     onSaved?: () => void;
 }) {
-    const { generatePreview, saveBulk } = useAudiosInList(list.id);
-    const [step, setStep] = React.useState<"form" | "preview">("form");
-    const [loading, setLoading] = React.useState(false);
-    const [error, setError] = React.useState<string | null>(null);
-    const [preview, setPreview] = React.useState<AudioItem[]>([]);
-    const [meta, setMeta] = React.useState<GeneratePayload | null>(null);
+    const { saveBulk } = useAudiosInList(list.id);
+    const { fetchTickets, tickets } = useTickets();
 
-    const form = useForm<FormValues>({
-        resolver: zodResolver(schema),
-        defaultValues: {
-            date: new Date().toISOString().slice(0, 10),
-            start_time: "00:00",
-            end_time: "23:59",
-        },
-    });
+    const [step, setStep] = useState<"form" | "preview">("form");
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [meta, setMeta] = useState<GeneratePayload | null>(null);
 
-    React.useEffect(() => {
+    const [accountcode, setAccountcode] = useState("");
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
+
+    const [selected, setSelected] = useState<string[]>([]);
+
+    // Reset ao fechar
+    useEffect(() => {
         if (!open) {
             setStep("form");
-            setPreview([]);
             setMeta(null);
             setError(null);
             setLoading(false);
-            form.reset();
+            setAccountcode("");
+            setStartDate("");
+            setEndDate("");
+            setSelected([]);
         }
-    }, [open, form]);
+    }, [open]);
 
-    async function onSubmit(values: FormValues) {
+    // Preenche e executa busca automaticamente
+    useEffect(() => {
+        if (open && list) {
+            const startISO = toLocalISOString(new Date(list.start_date));
+            const endISO = toLocalISOString(new Date(list.end_date));
+
+            setAccountcode(list.accountcode);
+            setStartDate(startISO);
+            setEndDate(endISO);
+        }
+    }, [open, list]);
+
+    async function handleSubmit() {
         setLoading(true);
         setError(null);
+
         try {
-            const payload: GeneratePayload = {
-                accountcode: values.accountcode,
-                date: values.date,
-                start_time: values.start_time || undefined,
-                end_time: values.end_time || undefined,
+            const payload = {
+                accountcode,
+                start_date: startDate,
+                end_date: endDate,
+                page: 1,
+                limit: 10,
             };
-            const items = await generatePreview(payload);
-            setPreview(items);
+
+            const result = await fetchTickets(payload);
+            if (!result || !Array.isArray(result.tickets)) {
+                throw new Error("Nenhum ticket retornado");
+            }
+
+            console.log(result.tickets);
+
             setMeta(payload);
             setStep("preview");
         } catch (e: any) {
-            setError(e?.message || "Falha ao gerar preview");
+            setError(e?.message || "Falha ao buscar tickets");
         } finally {
             setLoading(false);
         }
     }
 
     async function onSave() {
-        if (!preview.length) return;
+        if (!selected.length) return;
+
+        const audios = tickets.data
+            .filter((t) => selected.includes(t.id) && t.audiorecord)
+            .map((t) => ({
+                title: t.linkedid,
+                url: t.audiorecord!,
+            }));
+
         setLoading(true);
         setError(null);
         try {
-            await saveBulk(preview);
+            await saveBulk(audios);
             onSaved?.();
             onClose();
         } catch (e: any) {
@@ -105,59 +119,50 @@ export function GenerateAudiosModal({
         }
     }
 
+    const toggleSelect = (id: string) => {
+        setSelected((prev) =>
+            prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
+        );
+    };
+
     return (
         <Dialog open={open} onOpenChange={(o) => (!o ? onClose() : null)}>
-            <DialogContent className="sm:max-w-2xl">
+            <DialogContent className="sm:max-w-4xl">
                 <DialogHeader>
                     <DialogTitle>Adicionar áudios à lista</DialogTitle>
                     <DialogDescription>
-                        Busque na API externa e salve nesta lista.
+                        Preencha os dados abaixo para buscar os tickets com
+                        gravações disponíveis.
                     </DialogDescription>
                 </DialogHeader>
 
                 {step === "form" && (
-                    <form
-                        onSubmit={form.handleSubmit(onSubmit)}
-                        className="space-y-4"
-                    >
-                        <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-4">
+                        <div className="grid gap-4">
                             <div className="grid gap-2">
-                                <Label htmlFor="accountcode">Accountcode</Label>
-                                <Input
-                                    id="accountcode"
-                                    {...form.register("accountcode")}
-                                />
+                                <Label>Accountcode</Label>
+                                <span className="text-muted-foreground block p-2 rounded border bg-muted text-sm">
+                                    {accountcode}
+                                </span>
                             </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="date">Data</Label>
-                                <Input
-                                    id="date"
-                                    {...form.register("date")}
-                                    placeholder="YYYY-MM-DD"
-                                />
-                            </div>
-                        </div>
-                        <div className="grid sm:grid-cols-2 gap-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="start_time">
-                                    Início (HH:mm)
-                                </Label>
-                                <Input
-                                    id="start_time"
-                                    {...form.register("start_time")}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="end_time">Fim (HH:mm)</Label>
-                                <Input
-                                    id="end_time"
-                                    {...form.register("end_time")}
-                                />
+                            <div className="grid sm:grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label>Início</Label>
+                                    <span className="text-muted-foreground block p-2 rounded border bg-muted text-sm">
+                                        {startDate}
+                                    </span>
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label>Fim</Label>
+                                    <span className="text-muted-foreground block p-2 rounded border bg-muted text-sm">
+                                        {endDate}
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
                         {error && (
-                            <div className="rounded border border-destructive/30 bg-destructive/5 p-2 text-sm text-destructive">
+                            <div className="text-sm text-destructive bg-destructive/10 border border-destructive/30 p-2 rounded">
                                 {error}
                             </div>
                         )}
@@ -171,7 +176,7 @@ export function GenerateAudiosModal({
                             >
                                 Cancelar
                             </Button>
-                            <Button type="submit" disabled={loading}>
+                            <Button onClick={handleSubmit} disabled={loading}>
                                 {loading ? (
                                     <>
                                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -182,59 +187,127 @@ export function GenerateAudiosModal({
                                 )}
                             </Button>
                         </DialogFooter>
-                    </form>
+                    </div>
                 )}
 
                 {step === "preview" && (
                     <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <div className="text-sm text-muted-foreground">
-                                {meta?.accountcode} — {meta?.date}
-                                {meta?.start_time &&
-                                    `, ${meta.start_time}`}{" "}
-                                {meta?.end_time && `→ ${meta.end_time}`}
-                            </div>
-                            <Badge variant="secondary">
-                                {preview.length} áudios
-                            </Badge>
+                        <div className="text-sm text-muted-foreground">
+                            {meta?.accountcode} — {meta?.start_date} →{" "}
+                            {meta?.end_date}
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-auto pr-1">
-                            {preview.map((a, idx) => (
-                                <div
-                                    key={idx}
-                                    className="rounded-lg border p-3"
+                        <div className="overflow-auto border rounded-lg">
+                            <table className="w-full text-sm">
+                                <thead className="bg-muted text-muted-foreground">
+                                    <tr>
+                                        <th className="p-2 text-left">#</th>
+                                        <th className="p-2 text-left">
+                                            LinkedID
+                                        </th>
+                                        <th className="p-2 text-left">
+                                            Duração
+                                        </th>
+                                        <th className="p-2 text-left">Áudio</th>
+                                        <th className="p-2 text-left">
+                                            Selecionar
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {tickets.data.map((t, idx) => (
+                                        <tr
+                                            key={t.id + idx}
+                                            className="border-t last:border-b"
+                                        >
+                                            <td className="p-2">{idx + 1}</td>
+                                            <td className="p-2">
+                                                {t.linkedid}
+                                            </td>
+                                            <td className="p-2">
+                                                {t.duration}s
+                                            </td>
+                                            <td className="p-2">
+                                                {t.audiorecord ? (
+                                                    <a
+                                                        href={t.audiorecord}
+                                                        className="text-primary underline text-xs"
+                                                        target="_blank"
+                                                    >
+                                                        Ver
+                                                    </a>
+                                                ) : (
+                                                    "-"
+                                                )}
+                                            </td>
+                                            <td className="p-2">
+                                                <Checkbox
+                                                    checked={selected.includes(
+                                                        t.id
+                                                    )}
+                                                    onCheckedChange={() =>
+                                                        toggleSelect(t.id)
+                                                    }
+                                                    disabled={!t.audiorecord}
+                                                />
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Paginação simples */}
+                        <div className="flex justify-between items-center text-sm text-muted-foreground">
+                            <span>
+                                Página {tickets.pagination.page} de{" "}
+                                {tickets.pagination.totalPages}
+                            </span>
+                            <div className="flex gap-2">
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={
+                                        tickets.pagination.page <= 1 || loading
+                                    }
+                                    onClick={() =>
+                                        fetchTickets({
+                                            ...meta!,
+                                            page: tickets.pagination.page - 1,
+                                            accountcode,
+                                            start_date: startDate,
+                                            end_date: endDate,
+                                        })
+                                    }
                                 >
-                                    <div className="flex items-start gap-3">
-                                        <div className="h-10 w-10 rounded-md bg-muted grid place-items-center">
-                                            <Music className="h-5 w-5" />
-                                        </div>
-                                        <div className="min-w-0 flex-1">
-                                            <div className="font-medium truncate">
-                                                {a.title || "Sem título"}
-                                            </div>
-                                            <a
-                                                href={a.url}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="inline-flex items-center gap-1 text-xs text-primary mt-2"
-                                            >
-                                                <Link2 className="h-3 w-3" />
-                                                Abrir URL
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                            {preview.length === 0 && (
-                                <div className="text-sm text-muted-foreground">
-                                    Nenhum áudio retornado.
-                                </div>
-                            )}
+                                    Anterior
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={
+                                        tickets.pagination.page >=
+                                            tickets.pagination.totalPages ||
+                                        loading
+                                    }
+                                    onClick={() =>
+                                        fetchTickets({
+                                            ...meta!,
+                                            page: tickets.pagination.page + 1,
+                                            limit: 10,
+                                            accountcode,
+                                            start_date: startDate,
+                                            end_date: endDate,
+                                        })
+                                    }
+                                >
+                                    Próxima
+                                </Button>
+                            </div>
                         </div>
 
                         {error && (
-                            <div className="rounded border border-destructive/30 bg-destructive/5 p-2 text-sm text-destructive">
+                            <div className="text-sm text-destructive bg-destructive/10 border border-destructive/30 p-2 rounded">
                                 {error}
                             </div>
                         )}
@@ -249,7 +322,7 @@ export function GenerateAudiosModal({
                             </Button>
                             <Button
                                 onClick={onSave}
-                                disabled={loading || preview.length === 0}
+                                disabled={loading || selected.length === 0}
                             >
                                 {loading ? (
                                     <>
@@ -257,7 +330,7 @@ export function GenerateAudiosModal({
                                         Salvando…
                                     </>
                                 ) : (
-                                    "Salvar na lista"
+                                    `Salvar ${selected.length} áudios`
                                 )}
                             </Button>
                         </DialogFooter>
