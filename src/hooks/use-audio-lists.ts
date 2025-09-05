@@ -102,7 +102,8 @@ export function useAudioLists() {
                     "/audio-lists",
                     payload
                 );
-                setLists((prev) => [data, ...prev]); // adiciona no topo
+                // Sempre recarrega a lista completa após criar um novo recurso
+                await listAll();
                 return data;
             } catch (err: any) {
                 setError(
@@ -113,7 +114,7 @@ export function useAudioLists() {
                 throw err;
             }
         },
-        [api]
+        [api, listAll]
     );
 
     const getById = useCallback(
@@ -147,9 +148,8 @@ export function useAudioLists() {
                     `/audio-lists/${id}`,
                     patch
                 );
-                setLists((prev) =>
-                    prev.map((x) => (x.id === id ? { ...x, ...data } : x))
-                );
+                // Sempre recarrega a lista completa após atualizar um recurso
+                await listAll();
                 return data;
             } catch (err: any) {
                 setError(
@@ -160,17 +160,16 @@ export function useAudioLists() {
                 throw err;
             }
         },
-        [api]
+        [api, listAll]
     );
 
     const deleteList = useCallback(
         async (id: number) => {
-            const previous = [...lists];
-            setLists((prev) => prev.filter((x) => x.id !== id));
             try {
                 await api.delete(`/audio-lists/${id}`);
+                // Sempre recarrega a lista completa após deletar um recurso
+                await listAll();
             } catch (err: any) {
-                setLists(previous); // rollback
                 setError(
                     err?.response?.data?.error ||
                         err?.message ||
@@ -179,7 +178,7 @@ export function useAudioLists() {
                 throw err;
             }
         },
-        [api, lists]
+        [api, listAll]
     );
 
     return {

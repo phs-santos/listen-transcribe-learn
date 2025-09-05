@@ -196,11 +196,11 @@ export const Dashboard = ({ userEmail, onLogout }: DashboardProps) => {
               {filteredAudios.map((audio) => (
                 <AudioCard
                   key={audio.id}
-                  id={audio.id}
+                  id={parseInt(audio.id)}
                   title={audio.title}
                   duration={audio.duration}
                   description={audio.description}
-                  onPlay={handleAudioPlay}
+                  onPlay={() => handleAudioPlay(audio.id)}
                 />
               ))}
             </div>

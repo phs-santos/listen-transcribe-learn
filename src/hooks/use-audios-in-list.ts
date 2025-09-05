@@ -59,6 +59,7 @@ export function useAudiosInList(listId: number | null) {
                 skipped: number;
             }>(`/audio-lists/${listId}/audios/bulk`, { items });
 
+            // Sempre recarrega a lista completa após criar novos recursos
             await load();
             return data;
         },
@@ -68,9 +69,10 @@ export function useAudiosInList(listId: number | null) {
     const deleteAudio = useCallback(
         async (listId: number, id: number) => {
             await api.delete(`/audio-lists/${listId}/audios/${id}`);
-            setAudios((xs) => xs.filter((x) => x.id !== id));
+            // Sempre recarrega a lista completa após deletar um recurso
+            await load();
         },
-        [api]
+        [api, load]
     );
 
     const saveHumanTranscript = useCallback(
@@ -84,13 +86,11 @@ export function useAudiosInList(listId: number | null) {
                 }
             );
 
-            setAudios((prev) =>
-                prev.map((a) => (a.id === audioId ? { ...a, ...data } : a))
-            );
-
+            // Sempre recarrega a lista completa após atualizar um recurso
+            await load();
             return data;
         },
-        [api]
+        [api, userId, load]
     );
 
     const saveAiTranscript = useCallback(
@@ -102,13 +102,11 @@ export function useAudiosInList(listId: number | null) {
                 }
             );
 
-            setAudios((prev) =>
-                prev.map((a) => (a.id === audioId ? { ...a, ...data } : a))
-            );
-
+            // Sempre recarrega a lista completa após atualizar um recurso
+            await load();
             return data;
         },
-        [api]
+        [api, load]
     );
 
     return {

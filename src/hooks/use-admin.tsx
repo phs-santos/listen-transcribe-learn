@@ -79,8 +79,8 @@ export function useAdmin(initialSearch = "") {
             try {
                 setState((s) => ({ ...s, error: null }));
                 const { data } = await api.post<User>("/users", input);
-                // otimista: adiciona na lista
-                setState((s) => ({ ...s, users: [data, ...s.users] }));
+                // Sempre recarrega a lista completa após criar um novo recurso
+                await listUsers();
                 return data;
             } catch (err: any) {
                 const msg =
@@ -91,30 +91,18 @@ export function useAdmin(initialSearch = "") {
                 throw new Error(msg);
             }
         },
-        [api]
+        [api, listUsers]
     );
 
     const updateUser = useCallback(
         async (id: number, input: UserUpdateInput) => {
-            const prev = state.users;
-            const idx = prev.findIndex((u) => u.id === id);
-            if (idx === -1) return; // nada a fazer
-
-            const optimistic = [...prev];
-            optimistic[idx] = { ...optimistic[idx], ...input, id };
-            setState((s) => ({ ...s, users: optimistic }));
-
             try {
-                const { data } = await api.put<User>(`/users/${id}`, input);
-                const next = [...optimistic];
-                next[idx] = data;
-                setState((s) => ({ ...s, users: next }));
-                return data;
+                await api.put<User>(`/users/${id}`, input);
+                // Sempre recarrega a lista completa após atualizar um recurso
+                await listUsers();
             } catch (err: any) {
-                // rollback
                 setState((s) => ({
                     ...s,
-                    users: prev,
                     error:
                         err?.response?.data?.error ||
                         err?.message ||
@@ -123,22 +111,18 @@ export function useAdmin(initialSearch = "") {
                 throw err;
             }
         },
-        [api, state.users]
+        [api, listUsers]
     );
 
     const deleteUser = useCallback(
         async (id: number) => {
-            const prev = state.users;
-            const next = prev.filter((u) => u.id !== id);
-            // otimista
-            setState((s) => ({ ...s, users: next }));
             try {
                 await api.delete(`/users/${id}`);
+                // Sempre recarrega a lista completa após deletar um recurso
+                await listUsers();
             } catch (err: any) {
-                // rollback
                 setState((s) => ({
                     ...s,
-                    users: prev,
                     error:
                         err?.response?.data?.error ||
                         err?.message ||
@@ -147,7 +131,7 @@ export function useAdmin(initialSearch = "") {
                 throw err;
             }
         },
-        [api, state.users]
+        [api, listUsers]
     );
 
     return {

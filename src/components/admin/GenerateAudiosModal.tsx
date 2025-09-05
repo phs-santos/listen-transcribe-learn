@@ -64,7 +64,7 @@ export function GenerateAudiosModal({
             const endISO = toLocalISOString(new Date(list.end_date));
 
             setAccountcode(list.accountcode);
-            setCondominiumId(list.condominium_id);
+            setCondominiumId(String(list.condominium_id));
             setStartDate(startISO);
             setEndDate(endISO);
         }
