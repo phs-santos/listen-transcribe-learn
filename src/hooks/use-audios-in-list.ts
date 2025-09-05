@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
 import { getApiService } from "@/lib/api/services";
 import type { AudioList } from "./use-audio-lists";
 import { useAuthStore } from "@/store/auth-store";
@@ -49,6 +49,15 @@ export function useAudiosInList(listId: number | null) {
             setLoading(false);
         }
     }, [api, listId]);
+
+    // Auto-load audios when listId changes
+    useEffect(() => {
+        if (listId) {
+            load();
+        } else {
+            setAudios([]);
+        }
+    }, [listId, load]);
 
     const saveBulk = useCallback(
         async (items: AudioItem[]) => {
