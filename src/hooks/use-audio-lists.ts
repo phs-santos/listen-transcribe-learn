@@ -1,9 +1,11 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { getApiService } from "@/lib/api/services";
+import type { AudioItem } from "@/types/audio-list";
 
 export type AudioList = {
-    id: number; // UUID
+    id: number;
     accountcode: string;
+    condominium_id: number | string; // backend envia number
     start_date: string;
     end_date: string;
     status: "draft" | "generated" | "saved" | "published";
@@ -16,26 +18,41 @@ export type AudioList = {
     audios?: any[];
 };
 
+type CreateListPayload = {
+    accountcode: string;
+    condominium_id: number;
+    start_date: string;
+    end_date: string;
+    notes?: string;
+    created_by?: number;
+};
+
 export function useAudioLists() {
     const api = useMemo(
         () => getApiService("backend_local", "private_token"),
         []
     );
-
     const [lists, setLists] = useState<AudioList[]>([]);
+    const [audiosTranscribed, setAudiosTranscribed] = useState<AudioItem[]>([]);
     const [loading, setLoading] = useState(false);
+    const [loadingAT, setLoadingAT] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const abortRef = useRef<AbortController | null>(null);
 
-    const listAll = useCallback(async () => {
+    const abortPrevious = () => {
         abortRef.current?.abort();
-        const ac = new AbortController();
-        abortRef.current = ac;
+        const controller = new AbortController();
+        abortRef.current = controller;
+        return controller;
+    };
+
+    const listAll = useCallback(async () => {
+        const controller = abortPrevious();
         try {
             setLoading(true);
             setError(null);
             const { data } = await api.get<AudioList[]>("/audio-lists", {
-                signal: ac.signal,
+                signal: controller.signal,
             });
             setLists(data ?? []);
         } catch (err: any) {
@@ -52,58 +69,113 @@ export function useAudioLists() {
         }
     }, [api]);
 
+    const listAudiosTranscribed = useCallback(async () => {
+        const controller = abortPrevious();
+        try {
+            setLoadingAT(true);
+            setError(null);
+            const { data } = await api.get<AudioItem[]>(
+                "/audio-lists/transcribed",
+                {
+                    signal: controller.signal,
+                }
+            );
+            setAudiosTranscribed(data ?? []);
+        } catch (err: any) {
+            if (err?.name !== "AbortError") {
+                setError(
+                    err?.response?.data?.error ||
+                        err?.message ||
+                        "Falha ao listar áudios"
+                );
+            }
+        } finally {
+            setLoadingAT(false);
+            abortRef.current = null;
+        }
+    }, [api]);
+
     const createList = useCallback(
-        async (payload: {
-            accountcode: string;
-            start_date: string; // ISO format
-            end_date: string;
-            notes?: string;
-            created_by?: number;
-        }) => {
-            const { data } = await api.post<AudioList>("/audio-lists", payload);
-            setLists((prev) => [data, ...prev]);
-            return data;
+        async (payload: CreateListPayload) => {
+            try {
+                const { data } = await api.post<AudioList>(
+                    "/audio-lists",
+                    payload
+                );
+                setLists((prev) => [data, ...prev]); // adiciona no topo
+                return data;
+            } catch (err: any) {
+                setError(
+                    err?.response?.data?.error ||
+                        err?.message ||
+                        "Falha ao criar lista"
+                );
+                throw err;
+            }
         },
         [api]
     );
 
     const getById = useCallback(
         async (id: number) => {
-            const { data } = await api.get<AudioList>(`/audio-lists/${id}`);
-            setLists((prev) => {
-                const i = prev.findIndex((x) => x.id === id);
-                if (i === -1) return prev;
-                const clone = prev.slice();
-                clone[i] = { ...clone[i], ...data };
-                return clone;
-            });
-            return data;
+            try {
+                const { data } = await api.get<AudioList>(`/audio-lists/${id}`);
+                setLists((prev) => {
+                    const i = prev.findIndex((x) => x.id === id);
+                    if (i === -1) return [...prev, data];
+                    const clone = [...prev];
+                    clone[i] = { ...clone[i], ...data };
+                    return clone;
+                });
+                return data;
+            } catch (err: any) {
+                setError(
+                    err?.response?.data?.error ||
+                        err?.message ||
+                        "Falha ao buscar lista"
+                );
+                throw err;
+            }
         },
         [api]
     );
 
     const updateList = useCallback(
         async (id: number, patch: Partial<AudioList>) => {
-            const { data } = await api.patch<AudioList>(
-                `/audio-lists/${id}`,
-                patch
-            );
-            setLists((prev) =>
-                prev.map((x) => (x.id === id ? { ...x, ...data } : x))
-            );
-            return data;
+            try {
+                const { data } = await api.patch<AudioList>(
+                    `/audio-lists/${id}`,
+                    patch
+                );
+                setLists((prev) =>
+                    prev.map((x) => (x.id === id ? { ...x, ...data } : x))
+                );
+                return data;
+            } catch (err: any) {
+                setError(
+                    err?.response?.data?.error ||
+                        err?.message ||
+                        "Falha ao atualizar lista"
+                );
+                throw err;
+            }
         },
         [api]
     );
 
     const deleteList = useCallback(
         async (id: number) => {
-            const prev = lists;
-            setLists((xs) => xs.filter((x) => x.id !== id));
+            const previous = [...lists];
+            setLists((prev) => prev.filter((x) => x.id !== id));
             try {
                 await api.delete(`/audio-lists/${id}`);
-            } catch (err) {
-                setLists(prev);
+            } catch (err: any) {
+                setLists(previous); // rollback
+                setError(
+                    err?.response?.data?.error ||
+                        err?.message ||
+                        "Falha ao excluir lista"
+                );
                 throw err;
             }
         },
@@ -111,10 +183,15 @@ export function useAudioLists() {
     );
 
     return {
-        lists,
         loading,
+        loadingAT,
         error,
+
+        lists,
+        audiosTranscribed,
+
         listAll,
+        listAudiosTranscribed,
         createList,
         getById,
         updateList,

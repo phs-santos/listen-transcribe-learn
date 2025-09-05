@@ -1,7 +1,8 @@
 {
     "name": "fullstack-ai-training-front",
     "private": true,
-    "version": "0.0.0",
+    "version": "1.0.0",
+    "description": "FrontEnd para fazer a transcrição manual",
     "type": "module",
     "scripts": {
         "build": "vite build --mode production",
@@ -9,6 +10,8 @@
         "dev": "vite",
         "pm2:start": "pm2 start ecosystem.config.cjs"
     },
+    "author": "Paulo Souza<paulo18santos2000@gmail.com>",
+    "license": "MIT",
     "dependencies": {
         "@hookform/resolvers": "^3.10.0",
         "@radix-ui/react-accordion": "^1.2.11",

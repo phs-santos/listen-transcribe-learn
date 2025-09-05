@@ -14,7 +14,7 @@ import { AdminAnalytics } from "./pages/admin/AdminAnalytics";
 import { NotFound } from "./pages/NotFound";
 
 import { AppShell } from "@/components/layout/AppShell";
-import { AdminAudioListDetail } from "./pages/admin/AdminAudioListDetail";
+import { AudioListDetail } from "./pages/AudioListDetail";
 
 const queryClient = new QueryClient();
 
@@ -46,7 +46,7 @@ const App = () => (
                             <Route path="/dashboard" element={<Dashboard />} />
                             <Route
                                 path="/audio-lists/:id"
-                                element={<AdminAudioListDetail />}
+                                element={<AudioListDetail />}
                             />
 
                             <Route path="/admin">

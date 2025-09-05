@@ -20,7 +20,7 @@ function formatDuration(seconds: number) {
     return `${hrs > 0 ? `${hrs}h ` : ""}${mins}min`;
 }
 
-export function AdminAudioListDetail() {
+export function AudioListDetail() {
     const { id } = useParams();
     const { getById } = useAudioLists();
     const [audios, setAudios] = useState<AudioItem[]>([]);

@@ -165,7 +165,17 @@ export const Login = () => {
                                         setPassword("123456");
                                     }}
                                 >
-                                    usuario
+                                    roberval
+                                </Button>
+
+                                <Button
+                                    className="w-full bg-gradient-primary hover:shadow-glow transition-all duration-200 h-12"
+                                    onClick={() => {
+                                        setEmail("grover@agencia56k.com.br");
+                                        setPassword("123456");
+                                    }}
+                                >
+                                    grover
                                 </Button>
                             </div>
                         </div>

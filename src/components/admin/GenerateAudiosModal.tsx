@@ -36,6 +36,7 @@ export function GenerateAudiosModal({
     const [meta, setMeta] = useState<GeneratePayload | null>(null);
 
     const [accountcode, setAccountcode] = useState("");
+    const [condominiumId, setCondominiumId] = useState("");
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
 
@@ -49,6 +50,7 @@ export function GenerateAudiosModal({
             setError(null);
             setLoading(false);
             setAccountcode("");
+            setCondominiumId("");
             setStartDate("");
             setEndDate("");
             setSelected([]);
@@ -62,6 +64,7 @@ export function GenerateAudiosModal({
             const endISO = toLocalISOString(new Date(list.end_date));
 
             setAccountcode(list.accountcode);
+            setCondominiumId(list.condominium_id);
             setStartDate(startISO);
             setEndDate(endISO);
         }
@@ -74,6 +77,7 @@ export function GenerateAudiosModal({
         try {
             const payload = {
                 accountcode,
+                condominiumId,
                 start_date: startDate,
                 end_date: endDate,
                 page: 1,
@@ -84,8 +88,6 @@ export function GenerateAudiosModal({
             if (!result || !Array.isArray(result.tickets)) {
                 throw new Error("Nenhum ticket retornado");
             }
-
-            console.log(result.tickets);
 
             setMeta(payload);
             setStep("preview");
@@ -113,7 +115,7 @@ export function GenerateAudiosModal({
         setError(null);
         try {
             await saveBulk(audios);
-            onSaved?.();
+            onSaved();
             onClose();
         } catch (e: any) {
             setError(e?.message || "Falha ao salvar áudios");
@@ -142,12 +144,22 @@ export function GenerateAudiosModal({
                 {step === "form" && (
                     <div className="space-y-4">
                         <div className="grid gap-4">
-                            <div className="grid gap-2">
-                                <Label>Accountcode</Label>
-                                <span className="text-muted-foreground block p-2 rounded border bg-muted text-sm">
-                                    {accountcode}
-                                </span>
+                            <div className="grid sm:grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label>Accountcode</Label>
+                                    <span className="text-muted-foreground block p-2 rounded border bg-muted text-sm">
+                                        {accountcode}
+                                    </span>
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label>Condominnio ID</Label>
+                                    <span className="text-muted-foreground block p-2 rounded border bg-muted text-sm">
+                                        {condominiumId}
+                                    </span>
+                                </div>
                             </div>
+
                             <div className="grid sm:grid-cols-2 gap-4">
                                 <div className="grid gap-2">
                                     <Label>Início</Label>
@@ -278,6 +290,7 @@ export function GenerateAudiosModal({
                                             ...meta!,
                                             page: tickets.pagination.page - 1,
                                             accountcode,
+                                            condominiumId,
                                             start_date: startDate,
                                             end_date: endDate,
                                         })
@@ -299,6 +312,7 @@ export function GenerateAudiosModal({
                                             page: tickets.pagination.page + 1,
                                             limit: 10,
                                             accountcode,
+                                            condominiumId,
                                             start_date: startDate,
                                             end_date: endDate,
                                         })

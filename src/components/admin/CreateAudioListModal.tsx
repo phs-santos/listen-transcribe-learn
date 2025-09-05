@@ -1,7 +1,7 @@
-import * as React from "react";
 import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
 import {
     Dialog,
     DialogContent,
@@ -14,12 +14,19 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+
 import { useAudioLists } from "@/hooks/use-audio-lists";
 import { useAuthStore } from "@/store/auth-store";
+import { useEffect, useState } from "react";
 
+// Validação com Zod
 const schema = z
     .object({
         accountcode: z.string().min(2, "Informe o accountcode"),
+        condominium_id: z
+            .string()
+            .min(1, "Informe o ID do condomínio")
+            .refine((val) => !isNaN(Number(val)), "ID inválido"),
         start_date: z
             .string()
             .refine((val) => !isNaN(Date.parse(val)), "Data inválida"),
@@ -35,65 +42,103 @@ const schema = z
 
 type FormValues = z.infer<typeof schema>;
 
-export function CreateAudioListModal({
-    open,
-    onClose,
-    onCreated,
-}: {
+type Props = {
     open: boolean;
     onClose: () => void;
-    onCreated?: (id: number) => void;
-}) {
+    onCreated: (id: number) => void;
+};
+
+// Utilitário para garantir segundos no datetime
+const normalizeDatetime = (value: string): string => {
+    if (!value.includes("T")) return value;
+    const [date, time] = value.split("T");
+    const parts = time.split(":");
+    const [hh, mm, ss] = [parts[0], parts[1], parts[2] ?? "00"];
+    return `${date}T${hh.padStart(2, "0")}:${mm.padStart(2, "0")}:${ss.padStart(
+        2,
+        "0"
+    )}`;
+};
+
+export function CreateAudioListModal({ open, onClose, onCreated }: Props) {
     const { createList } = useAudioLists();
-    const [loading, setLoading] = React.useState(false);
-    const [error, setError] = React.useState<string | null>(null);
     const user = useAuthStore((s) => s.user);
 
-    const form = useForm<FormValues>({
+    const {
+        register,
+        handleSubmit,
+        formState: { errors },
+        reset,
+    } = useForm<FormValues>({
         resolver: zodResolver(schema),
         defaultValues: {
             accountcode: "",
+            condominium_id: "",
             start_date: "",
             end_date: "",
             notes: "",
         },
     });
 
-    React.useEffect(() => {
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
         if (!open) {
+            reset();
             setLoading(false);
             setError(null);
-            form.reset({
-                accountcode: "",
-                start_date: "",
-                end_date: "",
-                notes: "",
-            });
         }
-    }, [open, form]);
+    }, [open, reset]);
 
-    async function onSubmit(values: FormValues) {
+    const onSubmit = async (data: FormValues) => {
         setLoading(true);
         setError(null);
-        try {
-            const res = await createList({
-                accountcode: values.accountcode,
-                start_date: values.start_date,
-                end_date: values.end_date,
-                notes: values.notes || undefined,
-                created_by: user?.id,
-            });
 
-            onCreated?.(res.id);
+        try {
+            const payload = {
+                accountcode: data.accountcode,
+                start_date: normalizeDatetime(data.start_date),
+                end_date: normalizeDatetime(data.end_date),
+                notes: data.notes,
+                condominium_id: Number(data.condominium_id),
+                created_by: user?.id ?? undefined,
+            };
+
+            const res = await createList(payload);
+            onCreated(res.id); // aqui adiciona o callback
             onClose();
         } catch (e: any) {
             setError(
-                e?.response?.data?.error || e?.message || "Falha ao criar lista"
+                e?.response?.data?.error || e?.message || "Erro ao criar lista"
             );
         } finally {
             setLoading(false);
         }
-    }
+    };
+
+    const renderField = (
+        id: keyof FormValues,
+        label: string,
+        type = "text",
+        placeholder?: string
+    ) => (
+        <div className="grid gap-2">
+            <Label htmlFor={id}>{label}</Label>
+            <Input
+                id={id}
+                type={type}
+                step={type === "datetime-local" ? 1 : undefined}
+                placeholder={placeholder}
+                {...register(id)}
+            />
+            {errors[id] && (
+                <p className="text-sm text-destructive">
+                    {errors[id]?.message as string}
+                </p>
+            )}
+        </div>
+    );
 
     return (
         <Dialog open={open} onOpenChange={(o) => (!o ? onClose() : null)}>
@@ -105,68 +150,36 @@ export function CreateAudioListModal({
                     </DialogDescription>
                 </DialogHeader>
 
-                <form
-                    onSubmit={form.handleSubmit(onSubmit)}
-                    className="space-y-4"
-                >
-                    <div className="grid gap-2">
-                        <Label htmlFor="accountcode">Accountcode</Label>
-                        <Input
-                            id="accountcode"
-                            {...form.register("accountcode")}
-                        />
-                        {form.formState.errors.accountcode && (
-                            <p className="text-sm text-destructive">
-                                {form.formState.errors.accountcode.message}
-                            </p>
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                    {renderField(
+                        "accountcode",
+                        "Accountcode",
+                        "text",
+                        "agencia56k | 56konpx4"
+                    )}
+
+                    <div className="grid sm:grid-cols-2 gap-3">
+                        {renderField(
+                            "notes",
+                            "Título",
+                            "text",
+                            "Condomínio Gates of Heaven"
+                        )}
+                        {renderField(
+                            "condominium_id",
+                            "Código Condomínio",
+                            "text",
+                            "1345 | 5431"
                         )}
                     </div>
 
                     <div className="grid sm:grid-cols-2 gap-3">
-                        <div className="grid gap-2">
-                            <Label htmlFor="start_date">Início</Label>
-                            <Input
-                                id="start_date"
-                                type="datetime-local"
-                                step={1}
-                                {...form.register("start_date")}
-                                placeholder="dd/mm/aaaa hh:mm:ss"
-                            />
-                            {form.formState.errors.start_date && (
-                                <p className="text-sm text-destructive">
-                                    {form.formState.errors.start_date.message}
-                                </p>
-                            )}
-                        </div>
-
-                        <div className="grid gap-2">
-                            <Label htmlFor="end_date">Fim</Label>
-                            <Input
-                                id="end_date"
-                                type="datetime-local"
-                                step={1}
-                                {...form.register("end_date")}
-                                placeholder="dd/mm/aaaa hh:mm:ss"
-                            />
-                            {form.formState.errors.end_date && (
-                                <p className="text-sm text-destructive">
-                                    {form.formState.errors.end_date.message}
-                                </p>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="grid gap-2">
-                        <Label htmlFor="notes">Notas</Label>
-                        <Input
-                            id="notes"
-                            {...form.register("notes")}
-                            placeholder="Opcional"
-                        />
+                        {renderField("start_date", "Início", "datetime-local")}
+                        {renderField("end_date", "Fim", "datetime-local")}
                     </div>
 
                     {error && (
-                        <div className="rounded border border-destructive/30 bg-destructive/5 p-2 text-sm text-destructive">
+                        <div className="rounded border border-destructive/30 bg-destructive/10 p-2 text-sm text-destructive">
                             {error}
                         </div>
                     )}

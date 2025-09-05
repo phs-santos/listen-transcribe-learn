@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Copy, Download, FileText, Bot, User } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { AudioItem } from "@/types/audio-list";
 
 interface TranscriptionData {
     id: number;
@@ -23,7 +24,7 @@ interface TranscriptionData {
 interface TranscriptionModalProps {
     isOpen: boolean;
     onClose: () => void;
-    transcription: TranscriptionData | null;
+    transcription: AudioItem | null;
 }
 
 export const TranscriptionModal = ({
@@ -46,7 +47,7 @@ export const TranscriptionModal = ({
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `${transcription.audioTitle}-${type.toLowerCase()}.txt`;
+        a.download = `${transcription.title}-${type.toLowerCase()}.txt`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -59,18 +60,20 @@ export const TranscriptionModal = ({
                 <DialogHeader className="mb-4">
                     <DialogTitle className="text-xl font-semibold text-foreground flex items-center gap-2">
                         <FileText className="w-5 h-5" />
-                        {transcription.audioTitle}
+                        {transcription.title}
                     </DialogTitle>
                     <DialogDescription className="text-sm text-muted-foreground">
-                        Transcrito por {transcription.userEmail} em{" "}
-                        {new Date(transcription.transcribedAt).toLocaleString("pt-BR")}
+                        Transcrito por {transcription.transcriber.name} em{" "}
+                        {new Date(transcription.updated_at).toLocaleString(
+                            "pt-BR"
+                        )}
                         {" • "}Duração: {transcription.duration}
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-6 max-h-[60vh] overflow-y-auto">
                     {/* Human Transcription */}
-                    {transcription.humanTranscription && (
+                    {transcription.transcript_human && (
                         <Card className="p-6 bg-gradient-card border-border/50">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-lg font-medium text-foreground flex items-center gap-2">
@@ -83,7 +86,7 @@ export const TranscriptionModal = ({
                                         size="sm"
                                         onClick={() =>
                                             copyToClipboard(
-                                                transcription.humanTranscription!,
+                                                transcription.transcript_human!,
                                                 "Transcrição humana"
                                             )
                                         }
@@ -96,7 +99,7 @@ export const TranscriptionModal = ({
                                         size="sm"
                                         onClick={() =>
                                             downloadTranscription(
-                                                transcription.humanTranscription!,
+                                                transcription.transcript_human!,
                                                 "Humana"
                                             )
                                         }
@@ -107,13 +110,13 @@ export const TranscriptionModal = ({
                                 </div>
                             </div>
                             <div className="p-4 bg-background/50 rounded-lg text-sm font-mono whitespace-pre-wrap max-h-60 overflow-y-auto">
-                                {transcription.humanTranscription}
+                                {transcription.transcript_human}
                             </div>
                         </Card>
                     )}
 
                     {/* AI Transcription */}
-                    {transcription.aiTranscription && (
+                    {transcription.transcript_ai && (
                         <Card className="p-6 bg-gradient-card border-border/50">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-lg font-medium text-foreground flex items-center gap-2">
@@ -126,7 +129,7 @@ export const TranscriptionModal = ({
                                         size="sm"
                                         onClick={() =>
                                             copyToClipboard(
-                                                transcription.aiTranscription!,
+                                                transcription.transcript_ai!,
                                                 "Transcrição da IA"
                                             )
                                         }
@@ -139,7 +142,7 @@ export const TranscriptionModal = ({
                                         size="sm"
                                         onClick={() =>
                                             downloadTranscription(
-                                                transcription.aiTranscription!,
+                                                transcription.transcript_ai!,
                                                 "IA"
                                             )
                                         }
@@ -150,22 +153,24 @@ export const TranscriptionModal = ({
                                 </div>
                             </div>
                             <div className="p-4 bg-background/50 rounded-lg text-sm font-mono whitespace-pre-wrap max-h-60 overflow-y-auto">
-                                {transcription.aiTranscription}
+                                {transcription.transcript_ai}
                             </div>
                         </Card>
                     )}
 
-                    {!transcription.humanTranscription && !transcription.aiTranscription && (
-                        <Card className="p-8 text-center bg-gradient-card border-border/50">
-                            <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-foreground mb-2">
-                                Nenhuma transcrição disponível
-                            </h3>
-                            <p className="text-muted-foreground">
-                                Este áudio ainda não possui transcrições salvas.
-                            </p>
-                        </Card>
-                    )}
+                    {!transcription.transcript_human &&
+                        !transcription.transcript_ai && (
+                            <Card className="p-8 text-center bg-gradient-card border-border/50">
+                                <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                                <h3 className="text-lg font-medium text-foreground mb-2">
+                                    Nenhuma transcrição disponível
+                                </h3>
+                                <p className="text-muted-foreground">
+                                    Este áudio ainda não possui transcrições
+                                    salvas.
+                                </p>
+                            </Card>
+                        )}
                 </div>
             </DialogContent>
         </Dialog>

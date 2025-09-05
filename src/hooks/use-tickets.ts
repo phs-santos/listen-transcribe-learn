@@ -41,12 +41,14 @@ export function useTickets() {
     const fetchTickets = useCallback(
         async ({
             accountcode,
+            condominiumId: condominium,
             start_date: startDate,
             end_date: endDate,
             page = 1,
             limit = 10,
         }: {
             accountcode: string;
+            condominiumId: string;
             start_date: string;
             end_date: string;
             page?: number;
@@ -69,6 +71,7 @@ export function useTickets() {
                 const query = {
                     start_date,
                     end_date,
+                    condominium,
                     status: "ATENDIDA NA FILA",
                 };
 
