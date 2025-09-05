@@ -152,18 +152,18 @@ export function CreateAudioListModal({ open, onClose, onCreated }: Props) {
 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                     {renderField(
-                        "accountcode",
-                        "Accountcode",
+                        "notes",
+                        "Título",
                         "text",
-                        "agencia56k | 56konpx4"
+                        "Condomínio Gates of Heaven"
                     )}
 
                     <div className="grid sm:grid-cols-2 gap-3">
                         {renderField(
-                            "notes",
-                            "Título",
+                            "accountcode",
+                            "Accountcode",
                             "text",
-                            "Condomínio Gates of Heaven"
+                            "agencia56k | 56konpx4"
                         )}
                         {renderField(
                             "condominium_id",
