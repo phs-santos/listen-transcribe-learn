@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { getApiService } from "@/lib/api/services";
+import { useAuthStore } from "@/store/auth-store";
 import type { AudioItem } from "@/types/audio-list";
 
 export type AudioList = {
@@ -28,9 +29,11 @@ type CreateListPayload = {
 };
 
 export function useAudioLists() {
+    const token = useAuthStore((s) => s.user?.token);
+    
     const api = useMemo(
-        () => getApiService("backend_local", "private_token"),
-        []
+        () => getApiService("backend_local", "private_token", token),
+        [token]
     );
     const [lists, setLists] = useState<AudioList[]>([]);
     const [audiosTranscribed, setAudiosTranscribed] = useState<AudioItem[]>([]);

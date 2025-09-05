@@ -23,14 +23,15 @@ export type GeneratePayload = {
 };
 
 export function useAudiosInList(listId: number | null) {
+    const token = useAuthStore((s) => s.user?.token);
     const api = useMemo(
-        () => getApiService("backend_local", "private_token"),
-        []
+        () => getApiService("backend_local", "private_token", token),
+        [token]
     );
     const [audios, setAudios] = useState<AudioItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const userId = useAuthStore((s) => s.user.id);
+    const userId = useAuthStore((s) => s.user?.id);
 
     const load = useCallback(async () => {
         if (!listId) return;

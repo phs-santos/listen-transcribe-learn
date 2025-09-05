@@ -1,5 +1,6 @@
 import { getApiService } from "@/lib/api/services";
 import { User } from "@/types/auth-store";
+import { useAuthStore } from "@/store/auth-store";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export type UserCreateInput = {
@@ -28,12 +29,14 @@ export function useAdmin(initialSearch = "") {
         search: initialSearch,
     });
 
+    const token = useAuthStore((s) => s.user?.token);
+
     // cancelar requisições em voo
     const abortRef = useRef<AbortController | null>(null);
 
     const api = useMemo(
-        () => getApiService("backend_local", "private_token"),
-        []
+        () => getApiService("backend_local", "private_token", token),
+        [token]
     );
 
     const setSearch = useCallback((s: string) => {
