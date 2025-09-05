@@ -19,17 +19,19 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ListMusic, Trash2 } from "lucide-react";
+import { ListMusic, Trash2, Edit } from "lucide-react";
 import { useAudioLists, type AudioList } from "@/hooks/use-audio-lists";
 
 export default function ListCard({
     list,
     setSelectedList,
     onConfirmDeleteList,
+    onEditList,
 }: {
     list: AudioList;
     setSelectedList: Dispatch<SetStateAction<AudioList | null>>;
     onConfirmDeleteList: (list: AudioList) => Promise<void> | void;
+    onEditList: (list: AudioList) => void;
 }) {
     const { getById } = useAudioLists();
 
@@ -85,6 +87,16 @@ export default function ListCard({
                         className="shadow-sm"
                     >
                         Abrir
+                    </Button>
+
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onEditList(list)}
+                        className="text-muted-foreground hover:text-foreground"
+                    >
+                        <Edit className="h-4 w-4 mr-1" />
+                        Editar
                     </Button>
 
                     <AlertDialog>

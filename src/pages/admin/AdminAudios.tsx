@@ -14,6 +14,7 @@ import { useAudioLists, type AudioList } from "@/hooks/use-audio-lists";
 import { useAudiosInList } from "@/hooks/use-audios-in-list";
 import { CreateAudioListModal } from "@/components/admin/CreateAudioListModal";
 import { GenerateAudiosModal } from "@/components/admin/GenerateAudiosModal";
+import { EditAudioListModal } from "@/components/admin/EditAudioListModal";
 import { AudioInListCard } from "@/components/admin/audios/AudioInListCard";
 import ListCard from "@/components/admin/audios/ListCard";
 
@@ -28,7 +29,9 @@ export const AdminAudios = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [createOpen, setCreateOpen] = useState(false);
     const [genOpen, setGenOpen] = useState(false);
+    const [editOpen, setEditOpen] = useState(false);
     const [selectedList, setSelectedList] = useState<AudioList | null>(null);
+    const [editingList, setEditingList] = useState<AudioList | null>(null);
 
     const { lists, listAll, deleteList, getById } = useAudioLists();
     const { audios, load, deleteAudio } = useAudiosInList(
@@ -57,6 +60,11 @@ export const AdminAudios = () => {
         },
         [deleteList, selectedList?.id]
     );
+
+    const handleEditList = useCallback((list: AudioList) => {
+        setEditingList(list);
+        setEditOpen(true);
+    }, []);
 
     return (
         <div className="space-y-6">
@@ -95,6 +103,7 @@ export const AdminAudios = () => {
                         list={l}
                         setSelectedList={setSelectedList}
                         onConfirmDeleteList={handleConfirmDeleteList}
+                        onEditList={handleEditList}
                     />
                 ))}
 
@@ -195,6 +204,15 @@ export const AdminAudios = () => {
                     }}
                 />
             )}
+
+            <EditAudioListModal
+                open={editOpen}
+                onClose={() => {
+                    setEditOpen(false);
+                    setEditingList(null);
+                }}
+                list={editingList}
+            />
         </div>
     );
 };

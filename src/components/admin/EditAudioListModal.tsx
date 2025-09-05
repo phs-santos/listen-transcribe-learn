@@ -13,10 +13,10 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
 
-import { useAudioLists } from "@/hooks/use-audio-lists";
-import { useAuthStore } from "@/store/auth-store";
+import { useAudioLists, type AudioList } from "@/hooks/use-audio-lists";
 import { useAdmin } from "@/hooks/use-admin";
 import { useEffect, useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -36,6 +36,7 @@ const schema = z
             .string()
             .refine((val) => !isNaN(Date.parse(val)), "Data inválida"),
         notes: z.string().optional(),
+        status: z.enum(["draft", "generated", "saved", "published"]),
         allowed_users: z.array(z.number()).optional(),
     })
     .refine((data) => new Date(data.start_date) < new Date(data.end_date), {
@@ -48,7 +49,7 @@ type FormValues = z.infer<typeof schema>;
 type Props = {
     open: boolean;
     onClose: () => void;
-    onCreated: (id: number) => void;
+    list: AudioList | null;
 };
 
 // Utilitário para garantir segundos no datetime
@@ -63,16 +64,23 @@ const normalizeDatetime = (value: string): string => {
     )}`;
 };
 
-export function CreateAudioListModal({ open, onClose, onCreated }: Props) {
-    const { createList } = useAudioLists();
+// Converter data para formato datetime-local
+const toDatetimeLocal = (dateStr: string): string => {
+    const date = new Date(dateStr);
+    return date.toISOString().slice(0, 16);
+};
+
+export function EditAudioListModal({ open, onClose, list }: Props) {
+    const { updateList } = useAudioLists();
     const { users, listUsers } = useAdmin();
-    const user = useAuthStore((s) => s.user);
 
     const {
         register,
         handleSubmit,
         formState: { errors },
         reset,
+        setValue,
+        watch,
     } = useForm<FormValues>({
         resolver: zodResolver(schema),
         defaultValues: {
@@ -81,6 +89,7 @@ export function CreateAudioListModal({ open, onClose, onCreated }: Props) {
             start_date: "",
             end_date: "",
             notes: "",
+            status: "draft",
             allowed_users: [],
         },
     });
@@ -89,18 +98,37 @@ export function CreateAudioListModal({ open, onClose, onCreated }: Props) {
     const [error, setError] = useState<string | null>(null);
     const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
 
+    // Carregar usuários quando modal abre
     useEffect(() => {
         if (open) {
             listUsers();
+        }
+    }, [open, listUsers]);
+
+    // Preencher form quando lista muda
+    useEffect(() => {
+        if (list) {
+            reset({
+                accountcode: list.accountcode,
+                condominium_id: String(list.condominium_id),
+                start_date: toDatetimeLocal(list.start_date),
+                end_date: toDatetimeLocal(list.end_date),
+                notes: list.notes || "",
+                status: list.status,
+                allowed_users: (list as any).allowed_users || [],
+            });
+            setSelectedUsers((list as any).allowed_users || []);
         } else {
             reset();
-            setLoading(false);
-            setError(null);
             setSelectedUsers([]);
         }
-    }, [open, reset, listUsers]);
+        setLoading(false);
+        setError(null);
+    }, [list, reset]);
 
     const onSubmit = async (data: FormValues) => {
+        if (!list) return;
+        
         setLoading(true);
         setError(null);
 
@@ -111,16 +139,15 @@ export function CreateAudioListModal({ open, onClose, onCreated }: Props) {
                 end_date: normalizeDatetime(data.end_date),
                 notes: data.notes,
                 condominium_id: Number(data.condominium_id),
-                created_by: user?.id ?? undefined,
-                allowed_users: selectedUsers.length > 0 ? selectedUsers : undefined,
+                status: data.status,
+                allowed_users: selectedUsers,
             };
 
-            const res = await createList(payload);
-            onCreated(res.id); // aqui adiciona o callback
+            await updateList(list.id, payload);
             onClose();
         } catch (e: any) {
             setError(
-                e?.response?.data?.error || e?.message || "Erro ao criar lista"
+                e?.response?.data?.error || e?.message || "Erro ao atualizar lista"
             );
         } finally {
             setLoading(false);
@@ -160,23 +187,30 @@ export function CreateAudioListModal({ open, onClose, onCreated }: Props) {
 
     return (
         <Dialog open={open} onOpenChange={(o) => (!o ? onClose() : null)}>
-            <DialogContent className="sm:max-w-xl">
+            <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>Criar lista de áudios</DialogTitle>
+                    <DialogTitle>Editar lista de áudios</DialogTitle>
                     <DialogDescription>
-                        Informe os dados e o período completo da lista.
+                        Altere os dados da lista e configure usuários com acesso.
                     </DialogDescription>
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                    {renderField(
-                        "notes",
-                        "Título",
-                        "text",
-                        "Condomínio Gates of Heaven"
-                    )}
+                    <div className="grid gap-2">
+                        <Label htmlFor="notes">Título</Label>
+                        <Textarea
+                            id="notes"
+                            placeholder="Condomínio Gates of Heaven"
+                            {...register("notes")}
+                        />
+                        {errors.notes && (
+                            <p className="text-sm text-destructive">
+                                {errors.notes.message}
+                            </p>
+                        )}
+                    </div>
 
-                    <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="grid sm:grid-cols-3 gap-3">
                         {renderField(
                             "accountcode",
                             "Accountcode",
@@ -189,6 +223,19 @@ export function CreateAudioListModal({ open, onClose, onCreated }: Props) {
                             "text",
                             "1345 | 5431"
                         )}
+                        <div className="grid gap-2">
+                            <Label htmlFor="status">Status</Label>
+                            <select
+                                id="status"
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                {...register("status")}
+                            >
+                                <option value="draft">Rascunho</option>
+                                <option value="generated">Gerado</option>
+                                <option value="saved">Salvo</option>
+                                <option value="published">Publicado</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div className="grid sm:grid-cols-2 gap-3">
@@ -236,10 +283,10 @@ export function CreateAudioListModal({ open, onClose, onCreated }: Props) {
                             {loading ? (
                                 <>
                                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    Criando…
+                                    Salvando…
                                 </>
                             ) : (
-                                "Criar"
+                                "Salvar alterações"
                             )}
                         </Button>
                     </DialogFooter>

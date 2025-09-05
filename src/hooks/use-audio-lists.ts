@@ -17,6 +17,7 @@ export type AudioList = {
     totalAudios?: number;
     totalDuration?: number;
     audios?: any[];
+    allowed_users?: number[];
 };
 
 type CreateListPayload = {
